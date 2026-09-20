@@ -39,7 +39,24 @@ Upload a resume, get matched jobs and companies with a readiness score, see whic
 ## Architecture
 
 Client-server with a centralized data store, and a layered backend: Router → Service → Model/Schema.
+## Project Structure
 
+```
+SkillBridge/
+├── app/
+│   ├── main.py            # FastAPI entry point
+│   ├── routers/           # HTTP endpoints (auth, resumes, jobs, admin, recruiter)
+│   ├── services/          # Business logic (parsing, skill extraction, matching, skill gap, courses)
+│   ├── models/            # SQLAlchemy models (users, resumes, resume_skills, skills, companies, jobs, job_skills, courses)
+│   └── schemas/           # Pydantic request/response schemas
+├── alembic/               # Database migrations
+├── frontend/              # React app (Job Seeker, Recruiter and Admin interfaces)
+├── docs/                  # SRS, architecture and design document, diagrams
+├── requirements.txt       # Python dependencies
+├── .env.example           # Example environment variables (no real secrets)
+├── .gitignore
+└── README.md
+```
 ## Getting Started
 
 ```bash
