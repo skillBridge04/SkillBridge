@@ -32,7 +32,7 @@ Upload a resume, get matched jobs and companies with a readiness score, see whic
 |---|---|
 | Backend | FastAPI (Python) |
 | Database | PostgreSQL, SQLAlchemy, Alembic |
-| Frontend | React |
+| Frontend | HTML, CSS, Node.JS, React |
 | Resume parsing | pdfplumber, python-docx |
 | AI / NLP | DeepSeek API (spaCy and Sentence Transformers planned) |
 
