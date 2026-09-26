@@ -86,9 +86,15 @@ SkillBridge helps users:
 - **AI/NLP:** DeepSeek API, spaCy
 - **Resume Processing:** pdfplumber, python-docx
 - **Storage:** Supabase Storage
+---
 ## 👥 Contributors
 
 - Contributor 1
 - Contributor 2
 - Contributor 3
 - Contributor 4
+---
+
+## 📚 Documentation
+
+- [Software Requirements Specification & Architecture Design](docs/SRS/SkillBridge_SRS_Architecture_Design.pdf)
