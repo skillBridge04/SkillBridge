@@ -98,4 +98,4 @@ SkillBridge helps users:
 
 ## 📚 Documentation
 
-- [Software Requirements Specification & Architecture Design](docs/SRS/SkillBridge_SRS_Architecture_Design.pdf)
+- [Software Requirements Specification & Architecture Design](./SkillBridge_SRS_Architecture_Design.pdf)
