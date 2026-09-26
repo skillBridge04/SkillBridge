@@ -64,7 +64,8 @@ SkillBridge helps users:
                                │
                                ▼
                        Learning Roadmap
-</>Markdown
+
+</> Markdown
 ## 🚀 Main Features
 
 - Resume upload (PDF/DOCX)
