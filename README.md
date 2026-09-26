@@ -90,10 +90,10 @@ SkillBridge helps users:
 ---
 ## 👥 Contributors
 
-- Contributor 1
-- Contributor 2
-- Contributor 3
-- Contributor 4
+- Contributor : Sabbir Ahmed Shisir
+- Contributor : Rafi Ahammed Rajon
+- Contributor : Mahinur E Jannat
+- Contributor : Foujia Jahan Prome 
 ---
 
 ## 📚 Documentation
