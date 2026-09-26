@@ -64,6 +64,7 @@ SkillBridge helps users:
                                │
                                ▼
                        Learning Roadmap
+```text
 ## 🚀 Main Features
 
 - Resume upload (PDF/DOCX)
