@@ -1,98 +1,92 @@
 # SkillBridge
 
-AI-powered career recommendation and skill gap analysis platform for job seekers.
+AI-Powered Career Recommendation, Job Matching & Skill Gap Analysis Platform
 
-Upload a resume, get matched jobs and companies with a readiness score, see which skills you are missing, and follow recommended courses to close the gap.
+SkillBridge is a full-stack career guidance platform that analyzes a user's resume, identifies their skills and qualifications, recommends relevant companies and job opportunities, compares their skills with job requirements, identifies skill gaps, and recommends relevant courses to help users improve their skills.
 
-## Features
+---
 
-**Job Seeker**
-- Register and log in (email/password or Google OAuth)
-- Upload a resume in PDF or DOCX format
-- AI-based skill extraction, normalized against a skill taxonomy
-- Ranked company and job recommendations with a readiness score
-- Explainable skill-gap analysis (top matched and missing skills)
-- Course recommendations mapped to each missing skill
-- Recruiter visibility consent toggle and a log of who viewed the profile
+## 📌 Project Overview
 
-**Recruiter / Employer**
-- Register with a work email and get verified by an Admin
-- Post and manage job requirements
-- Search consenting candidate profiles by skill-match score
-- Shortlist candidates; contact details are shared only after the candidate accepts
+Finding a suitable job can be difficult because users may not know which companies or jobs match their current skills and qualifications.
 
-**Admin / Authority**
-- Approve or reject recruiter accounts
-- Manage companies, jobs, skills taxonomy, courses and skill-to-course mapping
-- Monitor users, flagged resumes and platform statistics
+SkillBridge helps users:
 
-## Tech Stack
+- Analyze their resume
+- Identify their skills and qualifications
+- Find suitable companies and job opportunities
+- Compare their skills with job requirements
+- Identify missing skills
+- Find relevant courses to learn those skills
 
-| Layer | Technology |
-|---|---|
-| Backend | FastAPI (Python) |
-| Database | PostgreSQL, SQLAlchemy, Alembic |
-| Frontend | HTML, CSS, Node.JS, React |
-| Resume parsing | pdfplumber, python-docx |
-| AI / NLP | DeepSeek API (spaCy and Sentence Transformers planned) |
+### Main Workflow
 
-## Architecture
+```text
+                    User
+                     │
+                     ▼
+             Upload Resume
+              PDF / DOCX
+                     │
+                     ▼
+             Resume Processing
+                     │
+                     ▼
+             AI Resume Analysis
+                     │
+          ┌──────────┼──────────┐
+          ▼          ▼          ▼
+       Skills     Education   Experience
+          │          │          │
+          └──────────┼──────────┘
+                     ▼
+                User Profile
+                     │
+                     ▼
+             Job & Company Matching
+                     │
+          ┌──────────┼──────────┐
+          ▼          ▼          ▼
+       Companies     Jobs      Salary
+                     │
+                     ▼
+              Job Requirements
+                     │
+                     ▼
+             Skill Gap Analysis
+                     │
+           ┌─────────┴─────────┐
+           ▼                   ▼
+     Matching Skills       Missing Skills
+                               │
+                               ▼
+                     Course Recommendation
+                               │
+                               ▼
+                       Learning Roadmap
+## 🚀 Main Features
 
-Client-server with a centralized data store, and a layered backend: Router → Service → Model/Schema.
-## Project Structure
+- Resume upload (PDF/DOCX)
+- AI-powered skill extraction
+- Company recommendations
+- Job recommendations
+- Job match percentage
+- Salary and qualification information
+- Skill gap analysis
+- Course recommendations
+- Personalized learning roadmap
+## 🛠️ Technology Stack
 
-```
-SkillBridge/
-├── app/
-│   ├── main.py            # FastAPI entry point
-│   ├── routers/           # HTTP endpoints (auth, resumes, jobs, admin, recruiter)
-│   ├── services/          # Business logic (parsing, skill extraction, matching, skill gap, courses)
-│   ├── models/            # SQLAlchemy models (users, resumes, resume_skills, skills, companies, jobs, job_skills, courses)
-│   └── schemas/           # Pydantic request/response schemas
-├── alembic/               # Database migrations
-├── frontend/              # React app (Job Seeker, Recruiter and Admin interfaces)
-├── docs/                  # SRS, architecture and design document, diagrams
-├── requirements.txt       # Python dependencies
-├── .env.example           # Example environment variables (no real secrets)
-├── .gitignore
-└── README.md
-```
-## Getting Started
+- **Frontend:** React / Next.js
+- **Backend:** Python, FastAPI
+- **Database:** PostgreSQL, Supabase
+- **ORM & Migration:** SQLAlchemy, Alembic
+- **AI/NLP:** DeepSeek API, spaCy
+- **Resume Processing:** pdfplumber, python-docx
+- **Storage:** Supabase Storage
+## 👥 Contributors
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/skillBridge04/SkillBridge.git
-cd SkillBridge
-
-# 2. Create a virtual environment and install dependencies
-python -m venv venv
-venv\Scripts\activate        # Windows
-pip install -r requirements.txt
-
-# 3. Add your settings
-# Copy .env.example to .env and fill in the values (database URL, DeepSeek API key)
-
-# 4. Run database migrations
-alembic upgrade head
-
-# 5. Start the server
-uvicorn app.main:app --reload
-```
-
-## Documentation
-
-- SRS, architecture and design: see the `docs/` folder
-- Figma prototype: *(add link here)*
-
-## Team
-
-CSE 314 — Software Engineering Lab, University of Asia Pacific
-
-| Name | Role |
-|---|---|
-| Rafi Ahammed Rajon | Business Analyst / Project Manager |
-| Foujia Jahan Prome | Team Lead |
-| Sabbir Ahmed Shisir | Reporting Lead |
-| Mahinur E Jannat | QA Lead |
-
-Submitted to: Md. Ashraful Alam, Lecturer of CSE
+- Contributor 1
+- Contributor 2
+- Contributor 3
+- Contributor 4
