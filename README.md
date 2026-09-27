@@ -80,7 +80,7 @@ SkillBridge helps users:
 - Personalized learning roadmap
 ## 🛠️ Technology Stack
 
-- **Frontend:** React / Next.js
+- **Frontend:** HTML,CSS
 - **Backend:** Python, FastAPI
 - **Database:** PostgreSQL, Supabase
 - **ORM & Migration:** SQLAlchemy, Alembic
