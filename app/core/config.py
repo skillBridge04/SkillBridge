@@ -24,17 +24,25 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # --- Database (Part 2 will actually use this) ---
-    DATABASE_URL: str = "postgresql://skillbridge_user:skillbridge_pass@localhost:5432/skillbridge_db"
+    DATABASE_URL: str = "postgresql+psycopg://postgres.stmfskypgzrmpknbpjjc:12345678%40Skillbridge@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
     # --- Auth (Part 3 will actually use this) ---
-    SECRET_KEY: str = "change-this-to-a-long-random-string"
+    SECRET_KEY: str = "43d5dcc98f45650682ea68b78fcbdbe0bb197985ff55335898612077e95b014b"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # --- AI (Part 6 will actually use this) ---
     DEEPSEEK_API_KEY: str = ""
 
-    # Tells pydantic-settings to load values from a local .env file (if present)
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # AI/ Tells pydantic-settings to load values from a local .env file (if present)
+    DEEPSEEK_API_KEY: str = ""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+    )
+
 
 
 # A single shared instance — import this everywhere, don't instantiate Settings() again.
