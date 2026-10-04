@@ -25,6 +25,10 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.routers.auth import router as auth_router
+from app.routers.admin import router as admin_router
+from app.routers.employer import router as employer_router
+from app.routers.resume import router as resume_router
 
 # NOTE: no routers are wired in yet — Part 3 (auth), Part 4 (resume upload),
 # etc. will each add one `app.include_router(...)` line below, once those
@@ -37,7 +41,7 @@ app = FastAPI(
     debug=settings.DEBUG,
 )
 
-# CORS: allows a separate frontend (Part 11, React) running on a different
+# CORS: allows a separate frontend (Part 11) running on a different
 # port/domain to call this API from the browser. Wide open for local dev —
 # tighten allow_origins to your real frontend URL before deploying.
 # CORS is not needed for Postman or curl, only for browser-based clients.
@@ -49,6 +53,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Authentication routes
+app.include_router(auth_router)
+# Admin routes
+app.include_router(admin_router)
+# Employer routes
+app.include_router(employer_router)
+# Resume routes
+app.include_router(resume_router)
 
 @app.get("/", tags=["root"])
 def read_root():
