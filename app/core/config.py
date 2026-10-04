@@ -1,41 +1,52 @@
 """
 app/core/config.py
 
-Centralized configuration.
+Centralized application configuration.
 
-Why this file exists (and why it matters for a university project):
-Instead of scattering `os.getenv("SOME_KEY")` calls across the codebase,
-every setting is declared ONCE here as a typed field. pydantic-settings then:
-  1. Reads values from the `.env` file automatically.
-  2. Validates their types (e.g. ACCESS_TOKEN_EXPIRE_MINUTES must be an int).
-  3. Gives you autocomplete + type-checking everywhere you use `settings.X`.
-
-Every later part (database, auth, AI) will import `settings` from here
-instead of reading environment variables directly.
+All environment-specific values such as database credentials,
+secret keys, and API keys are loaded from the .env file.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # --- App ---
+
+    # ---------------------------------------------------------
+    # App
+    # ---------------------------------------------------------
     APP_NAME: str = "SkillBridge"
     APP_ENV: str = "development"
     DEBUG: bool = True
 
-    # --- Database (Part 2 will actually use this) ---
-    DATABASE_URL: str = "postgresql://skillbridge_user:skillbridge_pass@localhost:5432/skillbridge_db"
+    # ---------------------------------------------------------
+    # Database
+    # ---------------------------------------------------------
+    DATABASE_URL: str = ""
 
-    # --- Auth (Part 3 will actually use this) ---
-    SECRET_KEY: str = "change-this-to-a-long-random-string"
+    # ---------------------------------------------------------
+    # Authentication
+    # ---------------------------------------------------------
+    SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-    # --- AI (Part 6 will actually use this) ---
+    # ---------------------------------------------------------
+    # AI
+    # ---------------------------------------------------------
     DEEPSEEK_API_KEY: str = ""
 
-    # Tells pydantic-settings to load values from a local .env file (if present)
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # ---------------------------------------------------------
+    # Environment configuration
+    # ---------------------------------------------------------
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+    )
 
 
-# A single shared instance — import this everywhere, don't instantiate Settings() again.
+# -------------------------------------------------------------
+# Shared settings instance
+# -------------------------------------------------------------
 settings = Settings()
