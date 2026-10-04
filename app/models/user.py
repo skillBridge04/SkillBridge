@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 from sqlalchemy import DateTime, Integer, String, func
@@ -33,6 +32,22 @@ class User(Base):
         nullable=False,
     )
 
+    role: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="JOB_SEEKER",
+        server_default="JOB_SEEKER",
+        index=True,
+    )
+
+    account_status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="ACTIVE",
+        server_default="ACTIVE",
+        index=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -40,6 +55,15 @@ class User(Base):
     )
 
     resumes: Mapped[list["Resume"]] = relationship(
+        "Resume",
         back_populates="user",
         cascade="all, delete-orphan",
+        foreign_keys="Resume.user_id",
     )
+
+    company: Mapped["Company | None"] = relationship(
+    "Company",
+    back_populates="employer",
+    foreign_keys="Company.employer_id",
+    uselist=False,
+)
