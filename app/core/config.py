@@ -1,10 +1,7 @@
 """
 app/core/config.py
 
-Centralized application configuration.
-
-All environment-specific values such as database credentials,
-secret keys, and API keys are loaded from the .env file.
+Centralized configuration for SkillBridge.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,32 +9,23 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
 
-    # ---------------------------------------------------------
-    # App
-    # ---------------------------------------------------------
+    # App settings
     APP_NAME: str = "SkillBridge"
     APP_ENV: str = "development"
     DEBUG: bool = True
 
-    # ---------------------------------------------------------
-    # Database
-    # ---------------------------------------------------------
+    # Database settings
     DATABASE_URL: str = ""
 
-    # ---------------------------------------------------------
-    # Authentication
-    # ---------------------------------------------------------
+    # Authentication settings
     SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-    # ---------------------------------------------------------
-    # AI
-    # ---------------------------------------------------------
-    DEEPSEEK_API_KEY: str = ""
+    # AI settings: GroqCloud
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
 
-    # ---------------------------------------------------------
     # Environment configuration
-    # ---------------------------------------------------------
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -46,7 +34,5 @@ class Settings(BaseSettings):
     )
 
 
-# -------------------------------------------------------------
-# Shared settings instance
-# -------------------------------------------------------------
+# Shared configuration instance
 settings = Settings()
