@@ -30,6 +30,7 @@ from app.routers.admin import router as admin_router
 from app.routers.employer import router as employer_router
 from app.routers.resume import router as resume_router
 from app.routers.matching import router as matching_router
+from app.routers.courses import router as courses_router
 
 # NOTE: no routers are wired in yet — Part 3 (auth), Part 4 (resume upload),
 # etc. will each add one `app.include_router(...)` line below, once those
@@ -64,6 +65,9 @@ app.include_router(employer_router)
 app.include_router(resume_router)
 # Matching routes
 app.include_router(matching_router)
+# Course recommendation routes
+app.include_router(courses_router)
+
 
 @app.get("/", tags=["root"])
 def read_root():
