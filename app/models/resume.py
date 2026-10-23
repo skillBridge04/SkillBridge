@@ -49,7 +49,9 @@ class Resume(AuditMixin, Base):
     )
 
     user: Mapped["User"] = relationship(
+        "User",
         back_populates="resumes",
+        foreign_keys=[user_id],
     )
 
     resume_skills: Mapped[list["ResumeSkill"]] = relationship(
