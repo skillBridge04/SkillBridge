@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 # =========================================================
 
 class JobCreate(BaseModel):
-    
+
 
     title: str = Field(
         min_length=2,

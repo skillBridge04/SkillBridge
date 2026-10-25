@@ -263,7 +263,6 @@ def deactivate_admin(
     db.refresh(admin)
 
     return admin
-
 # =========================================================
 # ACTIVATE ADMIN
 # =========================================================
@@ -301,4 +300,3 @@ def activate_admin(
     db.refresh(admin)
 
     return admin
-

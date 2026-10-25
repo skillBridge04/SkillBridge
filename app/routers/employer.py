@@ -491,7 +491,6 @@ def delete_job(
     db.commit()
 
     return None
-
 # =========================================================
 # ADD SKILL TO JOB
 # =========================================================
@@ -758,4 +757,3 @@ def delete_job_skill(
     db.commit()
 
     return None
-
