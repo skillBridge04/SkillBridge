@@ -566,8 +566,6 @@ def delete_job(
         )
 
     return None
-
-
 # =========================================================
 # JOB SKILL MANAGEMENT
 # =========================================================
@@ -785,13 +783,5 @@ def delete_job_skill(
     try:
         db.delete(job_skill)
         db.commit()
-
-    except IntegrityError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Unable to remove this skill.",
-        )
 
     return None
