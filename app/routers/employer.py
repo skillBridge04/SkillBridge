@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -5,31 +7,24 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import require_employer
-from app.models.company import Company
+
 from app.models.user import User
+from app.models.company import Company
+from app.models.job import Job
+from app.models.skill import Skill
+from app.models.job_skill import JobSkill
+
 from app.schemas.company import (
     CompanyCreate,
     CompanyResponse,
     CompanyUpdate,
 )
 
-
-router = APIRouter(
-    prefix="/api/employer",
-    tags=["Employer"],
-)
-
-from datetime import datetime, timezone
-
-from app.models.job import Job
 from app.schemas.job import (
     JobCreate,
     JobResponse,
     JobUpdate,
 )
-
-from app.models.skill import Skill
-from app.models.job_skill import JobSkill
 
 from app.schemas.job_skill import (
     JobSkillCreate,
@@ -37,9 +32,126 @@ from app.schemas.job_skill import (
     JobSkillUpdate,
 )
 
+
 # =========================================================
+# ROUTER CONFIGURATION
+# =========================================================
+
+router = APIRouter(
+    prefix="/api/employer",
+    tags=["Employer"],
+)
+
+
+# =========================================================
+# HELPER: GET THE CURRENT EMPLOYER'S COMPANY
+# =========================================================
+
+def get_employer_company(
+    db: Session,
+    employer: User,
+) -> Company:
+    """
+    Return the company belonging to the logged-in employer.
+    """
+
+    company = db.scalar(
+        select(Company).where(
+            Company.employer_id == employer.id
+        )
+    )
+
+    if company is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You have not created a company yet.",
+        )
+
+    return company
+
+
+# =========================================================
+# HELPER: GET A JOB OWNED BY THE EMPLOYER
+# =========================================================
+
+def get_employer_job(
+    db: Session,
+    employer: User,
+    job_id: int,
+) -> Job:
+    """
+    Return a job only if it belongs to the employer's company.
+    """
+
+    company = get_employer_company(
+        db=db,
+        employer=employer,
+    )
+
+    job = db.scalar(
+        select(Job).where(
+            Job.id == job_id,
+            Job.company_id == company.id,
+        )
+    )
+
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found in your company.",
+        )
+
+    return job
+
+
+# =========================================================
+# HELPER: UPDATE AUDIT FIELD WHEN AVAILABLE
+# =========================================================
+
+def set_updated_by(
+    obj,
+    user_id: int,
+) -> None:
+    """
+    Set updated_by_id if the model has that field.
+    """
+
+    if hasattr(obj, "updated_by_id"):
+        obj.updated_by_id = user_id
+
+
+# =========================================================
+# HELPER: COMMIT DATABASE CHANGES SAFELY
+# =========================================================
+
+def commit_changes(
+    db: Session,
+    error_message: str,
+) -> None:
+    """
+    Commit changes and handle database integrity errors.
+    """
+
+    try:
+        db.commit()
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=error_message,
+        )
+
+
+# =========================================================
+# COMPANY MANAGEMENT
+# =========================================================
+
+
+# ---------------------------------------------------------
 # CREATE COMPANY
-# =========================================================
+# ---------------------------------------------------------
 
 @router.post(
     "/company",
@@ -52,12 +164,8 @@ def create_company(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Create a company for the currently logged-in Employer.
+    Create a company for the logged-in employer.
     """
-
-    # -----------------------------------------------------
-    # Check whether this Employer already owns a company
-    # -----------------------------------------------------
 
     existing_company = db.scalar(
         select(Company).where(
@@ -68,12 +176,8 @@ def create_company(
     if existing_company:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="You already have a company",
+            detail="You already have a company.",
         )
-
-    # -----------------------------------------------------
-    # Check company name
-    # -----------------------------------------------------
 
     existing_name = db.scalar(
         select(Company).where(
@@ -84,12 +188,8 @@ def create_company(
     if existing_name:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Company name already exists",
+            detail="A company with this name already exists.",
         )
-
-    # -----------------------------------------------------
-    # Create company
-    # -----------------------------------------------------
 
     company = Company(
         employer_id=current_employer.id,
@@ -100,26 +200,28 @@ def create_company(
         description=company_data.description,
     )
 
+    # Populate audit fields if available.
+    if hasattr(company, "created_by_id"):
+        company.created_by_id = current_employer.id
+
+    if hasattr(company, "updated_by_id"):
+        company.updated_by_id = current_employer.id
+
     db.add(company)
 
-    try:
-        db.commit()
-        db.refresh(company)
+    commit_changes(
+        db,
+        "Unable to create company. The company may already exist.",
+    )
 
-    except IntegrityError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Unable to create company. The company may already exist.",
-        )
+    db.refresh(company)
 
     return company
 
 
-# =========================================================
+# ---------------------------------------------------------
 # GET MY COMPANY
-# =========================================================
+# ---------------------------------------------------------
 
 @router.get(
     "/company",
@@ -130,27 +232,18 @@ def get_my_company(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Get the company owned by the currently logged-in Employer.
+    Get the logged-in employer's company.
     """
 
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    return get_employer_company(
+        db=db,
+        employer=current_employer,
     )
 
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="You have not created a company yet",
-        )
 
-    return company
-
-
-# =========================================================
+# ---------------------------------------------------------
 # UPDATE MY COMPANY
-# =========================================================
+# ---------------------------------------------------------
 
 @router.patch(
     "/company",
@@ -162,34 +255,28 @@ def update_my_company(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Update the company owned by the currently logged-in Employer.
+    Update the logged-in employer's company.
     """
 
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    company = get_employer_company(
+        db=db,
+        employer=current_employer,
     )
-
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="You have not created a company yet",
-        )
-
-    # -----------------------------------------------------
-    # Update only provided fields
-    # -----------------------------------------------------
 
     update_data = company_data.model_dump(
         exclude_unset=True
     )
 
-    # -----------------------------------------------------
-    # Check company name if it is being changed
-    # -----------------------------------------------------
-
+    # Prevent blank company names.
     if "name" in update_data:
+        if not update_data["name"] or not update_data["name"].strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Company name cannot be empty.",
+            )
+
+        update_data["name"] = update_data["name"].strip()
+
         existing_name = db.scalar(
             select(Company).where(
                 Company.name == update_data["name"],
@@ -200,33 +287,37 @@ def update_my_company(
         if existing_name:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Company name already exists",
+                detail="A company with this name already exists.",
             )
 
-    # -----------------------------------------------------
-    # Apply changes
-    # -----------------------------------------------------
-
+    # Apply only fields provided by the client.
     for field, value in update_data.items():
-        setattr(company, field, value)
+        if hasattr(company, field):
+            setattr(company, field, value)
 
-    try:
-        db.commit()
-        db.refresh(company)
+    set_updated_by(
+        company,
+        current_employer.id,
+    )
 
-    except IntegrityError:
-        db.rollback()
+    commit_changes(
+        db,
+        "Unable to update company because of a database conflict.",
+    )
 
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Unable to update company",
-        )
+    db.refresh(company)
 
     return company
 
+
 # =========================================================
+# JOB MANAGEMENT
+# =========================================================
+
+
+# ---------------------------------------------------------
 # CREATE JOB
-# =========================================================
+# ---------------------------------------------------------
 
 @router.post(
     "/jobs",
@@ -239,23 +330,15 @@ def create_job(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Create a job for the currently logged-in Employer's company.
+    Create a job under the logged-in employer's company.
     """
 
-    # Find the employer's company
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    company = get_employer_company(
+        db=db,
+        employer=current_employer,
     )
 
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="You must create a company before creating a job",
-        )
-
-    # Validate salary range
+    # Validate salary range.
     if (
         job_data.salary_min is not None
         and job_data.salary_max is not None
@@ -263,13 +346,19 @@ def create_job(
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Minimum salary cannot be greater than maximum salary",
+            detail="Minimum salary cannot exceed maximum salary.",
         )
 
-    # Create job
+    # Validate job title.
+    if not job_data.title or not job_data.title.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Job title cannot be empty.",
+        )
+
     job = Job(
         company_id=company.id,
-        title=job_data.title,
+        title=job_data.title.strip(),
         location=job_data.location,
         employment_type=job_data.employment_type,
         salary_min=job_data.salary_min,
@@ -283,15 +372,27 @@ def create_job(
         deadline=job_data.deadline,
     )
 
+    if hasattr(job, "created_by_id"):
+        job.created_by_id = current_employer.id
+
+    if hasattr(job, "updated_by_id"):
+        job.updated_by_id = current_employer.id
+
     db.add(job)
-    db.commit()
+
+    commit_changes(
+        db,
+        "Unable to create the job because of a database conflict.",
+    )
+
     db.refresh(job)
 
     return job
 
-# =========================================================
-# GET MY JOBS
-# =========================================================
+
+# ---------------------------------------------------------
+# GET ALL MY JOBS
+# ---------------------------------------------------------
 
 @router.get(
     "/jobs",
@@ -302,20 +403,13 @@ def get_my_jobs(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Get all jobs belonging to the currently logged-in Employer.
+    List all jobs belonging to the logged-in employer.
     """
 
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    company = get_employer_company(
+        db=db,
+        employer=current_employer,
     )
-
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="You have not created a company yet",
-        )
 
     jobs = db.scalars(
         select(Job)
@@ -325,9 +419,10 @@ def get_my_jobs(
 
     return jobs
 
-# =========================================================
+
+# ---------------------------------------------------------
 # GET ONE JOB
-# =========================================================
+# ---------------------------------------------------------
 
 @router.get(
     "/jobs/{job_id}",
@@ -339,39 +434,19 @@ def get_job(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Get one job belonging to the current Employer.
+    Get one job belonging to the logged-in employer.
     """
 
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    return get_employer_job(
+        db=db,
+        employer=current_employer,
+        job_id=job_id,
     )
 
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Company not found",
-        )
 
-    job = db.scalar(
-        select(Job).where(
-            Job.id == job_id,
-            Job.company_id == company.id,
-        )
-    )
-
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-
-    return job
-
-# =========================================================
+# ---------------------------------------------------------
 # UPDATE JOB
-# =========================================================
+# ---------------------------------------------------------
 
 @router.patch(
     "/jobs/{job_id}",
@@ -384,39 +459,20 @@ def update_job(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Update a job belonging to the current Employer.
+    Update a job belonging to the logged-in employer.
     """
 
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    job = get_employer_job(
+        db=db,
+        employer=current_employer,
+        job_id=job_id,
     )
-
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Company not found",
-        )
-
-    job = db.scalar(
-        select(Job).where(
-            Job.id == job_id,
-            Job.company_id == company.id,
-        )
-    )
-
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
 
     update_data = job_data.model_dump(
         exclude_unset=True
     )
 
-    # Check salary range after update
+    # Validate salary range using the final values.
     new_salary_min = update_data.get(
         "salary_min",
         job.salary_min,
@@ -434,20 +490,44 @@ def update_job(
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Minimum salary cannot be greater than maximum salary",
+            detail="Minimum salary cannot exceed maximum salary.",
         )
 
-    for field, value in update_data.items():
-        setattr(job, field, value)
+    # Validate title if supplied.
+    if "title" in update_data:
+        title = update_data["title"]
 
-    db.commit()
+        if not title or not title.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Job title cannot be empty.",
+            )
+
+        update_data["title"] = title.strip()
+
+    # Apply the changes.
+    for field, value in update_data.items():
+        if hasattr(job, field):
+            setattr(job, field, value)
+
+    set_updated_by(
+        job,
+        current_employer.id,
+    )
+
+    commit_changes(
+        db,
+        "Unable to update the job because of a database conflict.",
+    )
+
     db.refresh(job)
 
     return job
 
-# =========================================================
+
+# ---------------------------------------------------------
 # DELETE JOB
-# =========================================================
+# ---------------------------------------------------------
 
 @router.delete(
     "/jobs/{job_id}",
@@ -459,42 +539,43 @@ def delete_job(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Delete a job belonging to the current Employer.
+    Permanently delete a job belonging to the employer.
+
+    Note: This is a hard delete, not a soft delete.
     """
 
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    job = get_employer_job(
+        db=db,
+        employer=current_employer,
+        job_id=job_id,
     )
 
-    if company is None:
+    try:
+        db.delete(job)
+        db.commit()
+
+    except IntegrityError:
+        db.rollback()
+
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Company not found",
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This job cannot be deleted because related records "
+                "still reference it. Remove those records first."
+            ),
         )
-
-    job = db.scalar(
-        select(Job).where(
-            Job.id == job_id,
-            Job.company_id == company.id,
-        )
-    )
-
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-
-    db.delete(job)
-    db.commit()
 
     return None
 
+
 # =========================================================
+# JOB SKILL MANAGEMENT
+# =========================================================
+
+
+# ---------------------------------------------------------
 # ADD SKILL TO JOB
-# =========================================================
+# ---------------------------------------------------------
 
 @router.post(
     "/jobs/{job_id}/skills",
@@ -508,75 +589,78 @@ def add_skill_to_job(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Add a skill to a job belonging to the current Employer.
+    Add a required or optional skill to an employer-owned job.
     """
 
-    # Find employer's company
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    job = get_employer_job(
+        db=db,
+        employer=current_employer,
+        job_id=job_id,
     )
 
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Company not found",
-        )
-
-    # Check whether the job belongs to this employer
-    job = db.scalar(
-        select(Job).where(
-            Job.id == job_id,
-            Job.company_id == company.id,
-        )
+    skill = db.get(
+        Skill,
+        skill_data.skill_id,
     )
-
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-
-    # Check whether skill exists
-    skill = db.get(Skill, skill_data.skill_id)
 
     if skill is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Skill not found",
+            detail="Skill not found.",
         )
 
-    # Check duplicate skill
-    existing_job_skill = db.scalar(
+    # Do not assign inactive skills when the model has status.
+    skill_status = getattr(skill, "status", None)
+
+    if (
+        skill_status is not None
+        and str(skill_status).upper() != "ACTIVE"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This skill is not active and cannot be assigned.",
+        )
+
+    existing_link = db.scalar(
         select(JobSkill).where(
-            JobSkill.job_id == job_id,
-            JobSkill.skill_id == skill_data.skill_id,
+            JobSkill.job_id == job.id,
+            JobSkill.skill_id == skill.id,
         )
     )
 
-    if existing_job_skill:
+    if existing_link:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This skill is already added to the job",
+            detail="This skill is already assigned to the job.",
         )
 
-    # Create job-skill relationship
     job_skill = JobSkill(
-        job_id=job_id,
-        skill_id=skill_data.skill_id,
+        job_id=job.id,
+        skill_id=skill.id,
         is_required=skill_data.is_required,
     )
 
+    if hasattr(job_skill, "created_by_id"):
+        job_skill.created_by_id = current_employer.id
+
+    if hasattr(job_skill, "updated_by_id"):
+        job_skill.updated_by_id = current_employer.id
+
     db.add(job_skill)
-    db.commit()
+
+    commit_changes(
+        db,
+        "This skill is already assigned to the job.",
+    )
+
     db.refresh(job_skill)
 
     return job_skill
 
-# =========================================================
-# GET JOB SKILLS
-# =========================================================
+
+# ---------------------------------------------------------
+# GET ALL SKILLS FOR A JOB
+# ---------------------------------------------------------
 
 @router.get(
     "/jobs/{job_id}/skills",
@@ -588,48 +672,27 @@ def get_job_skills(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Get all skills belonging to a job owned by the current Employer.
+    List skills assigned to an employer-owned job.
     """
 
-    # Find employer's company
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    job = get_employer_job(
+        db=db,
+        employer=current_employer,
+        job_id=job_id,
     )
 
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Company not found",
-        )
-
-    # Check job ownership
-    job = db.scalar(
-        select(Job).where(
-            Job.id == job_id,
-            Job.company_id == company.id,
-        )
-    )
-
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-
-    # Get skills
     job_skills = db.scalars(
         select(JobSkill)
-        .where(JobSkill.job_id == job_id)
+        .where(JobSkill.job_id == job.id)
         .order_by(JobSkill.id)
     ).all()
 
     return job_skills
 
-# =========================================================
-# UPDATE JOB SKILL
-# =========================================================
+
+# ---------------------------------------------------------
+# UPDATE A JOB SKILL
+# ---------------------------------------------------------
 
 @router.patch(
     "/jobs/{job_id}/skills/{skill_id}",
@@ -643,40 +706,18 @@ def update_job_skill(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Change a job skill between required and optional.
+    Change whether a skill is required for an employer-owned job.
     """
 
-    # Find employer's company
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    job = get_employer_job(
+        db=db,
+        employer=current_employer,
+        job_id=job_id,
     )
 
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Company not found",
-        )
-
-    # Check job ownership
-    job = db.scalar(
-        select(Job).where(
-            Job.id == job_id,
-            Job.company_id == company.id,
-        )
-    )
-
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-
-    # Find job skill
     job_skill = db.scalar(
         select(JobSkill).where(
-            JobSkill.job_id == job_id,
+            JobSkill.job_id == job.id,
             JobSkill.skill_id == skill_id,
         )
     )
@@ -684,20 +725,29 @@ def update_job_skill(
     if job_skill is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Skill is not assigned to this job",
+            detail="This skill is not assigned to the job.",
         )
 
-    # Update
     job_skill.is_required = skill_data.is_required
 
-    db.commit()
+    set_updated_by(
+        job_skill,
+        current_employer.id,
+    )
+
+    commit_changes(
+        db,
+        "Unable to update this job skill.",
+    )
+
     db.refresh(job_skill)
 
     return job_skill
 
-# =========================================================
-# DELETE SKILL FROM JOB
-# =========================================================
+
+# ---------------------------------------------------------
+# REMOVE A SKILL FROM A JOB
+# ---------------------------------------------------------
 
 @router.delete(
     "/jobs/{job_id}/skills/{skill_id}",
@@ -710,40 +760,18 @@ def delete_job_skill(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Remove a skill from a job owned by the current Employer.
+    Remove a skill from an employer-owned job.
     """
 
-    # Find employer's company
-    company = db.scalar(
-        select(Company).where(
-            Company.employer_id == current_employer.id
-        )
+    job = get_employer_job(
+        db=db,
+        employer=current_employer,
+        job_id=job_id,
     )
 
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Company not found",
-        )
-
-    # Check job ownership
-    job = db.scalar(
-        select(Job).where(
-            Job.id == job_id,
-            Job.company_id == company.id,
-        )
-    )
-
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-
-    # Find job skill
     job_skill = db.scalar(
         select(JobSkill).where(
-            JobSkill.job_id == job_id,
+            JobSkill.job_id == job.id,
             JobSkill.skill_id == skill_id,
         )
     )
@@ -751,11 +779,19 @@ def delete_job_skill(
     if job_skill is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Skill is not assigned to this job",
+            detail="This skill is not assigned to the job.",
         )
 
-    db.delete(job_skill)
-    db.commit()
+    try:
+        db.delete(job_skill)
+        db.commit()
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Unable to remove this skill.",
+        )
 
     return None
-
