@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="description"
+        content="Log in to SkillBridge and continue your career journey."
+    >
+
+    <meta name="theme-color" content="#f8f9fc">
+
+    <title>Log In | SkillBridge</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/auth.js" defer></script>
+</head>
+
+<body class="auth-page">
+
+    <!-- Navigation -->
+    <header class="site-header">
+        <nav class="navbar container">
+
+            <a href="/" class="logo" aria-label="SkillBridge home">
+                <span class="logo-icon">S</span>
+
+                <span>
+                    Skill<span class="logo-highlight">Bridge</span>
+                </span>
+            </a>
+
+            <a href="/" class="back-link">
+                <span aria-hidden="true">←</span>
+                Back to Home
+            </a>
+
+        </nav>
+    </header>
+
+    <!-- Login Form -->
+    <main class="auth-layout">
+
+        <section class="auth-card">
+
+            <div class="auth-brand-icon" aria-hidden="true">S</div>
+
+            <span class="eyebrow">WELCOME BACK</span>
+
+            <h1>Log in to SkillBridge</h1>
+
+            <p class="auth-description">
+                Continue your journey toward better career opportunities.
+            </p>
+
+            <!-- Success and error messages -->
+            <div
+                id="formMessage"
+                class="form-message"
+                role="status"
+                aria-live="polite"
+                hidden
+            ></div>
+
+            <form id="loginForm">
+
+                <!-- Email -->
+                <div class="form-group">
+
+                    <label for="email">
+                        Email address
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="you@example.com"
+                        autocomplete="email"
+                        required
+                    >
+
+                </div>
+
+                <!-- Password with Show/Hide button -->
+                <div class="form-group">
+
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <div class="password-wrapper">
+
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            data-toggle-password="password"
+                            aria-label="Show password"
+                            aria-pressed="false"
+                        >
+                            Show
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <!-- Submit -->
+                <button
+                    type="submit"
+                    class="button auth-submit"
+                    id="submitButton"
+                >
+                    Log In
+                </button>
+
+            </form>
+
+            <!-- Registration link -->
+            <p class="auth-switch">
+                Don't have an account?
+                <a href="/register">Create an account</a>
+            </p>
+
+            <p class="auth-footer-note">
+                Your career journey continues with SkillBridge.
+            </p>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+
+        <div class="container footer-content">
+
+            <a href="/" class="logo">
+                <span class="logo-icon">S</span>
+
+                <span>
+                    Skill<span class="logo-highlight">Bridge</span>
+                </span>
+            </a>
+
+            <p>
+                © <span id="currentYear"></span> SkillBridge
+            </p>
+
+        </div>
+
+    </footer>
+
+</body>
+</html>

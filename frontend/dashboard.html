@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="description"
+        content="Your personal SkillBridge career dashboard for resume analysis, job matching, skill gap analysis, and course recommendations."
+    >
+
+    <title>Dashboard | SkillBridge</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/dashboard.js" defer></script>
+
+    <style>
+        /* Dashboard-specific course layout. */
+
+        .recommended-courses-list {
+            display: grid;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .course-card .course-link {
+            display: inline-flex;
+            width: fit-content;
+            margin-top: 16px;
+            text-decoration: none;
+        }
+
+        .course-card .job-match-information {
+            margin-top: 10px;
+        }
+
+        #skillGapsSummary[hidden],
+        #skillGapsEmpty[hidden],
+        #coursesEmpty[hidden],
+        #recommendedJobsEmpty[hidden],
+        #resumeSkillsPanel[hidden],
+        #resumeSkillsSummary[hidden] {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body class="dashboard-page">
+
+    <!-- =========================================
+         HEADER
+         ========================================= -->
+
+    <header class="site-header dashboard-header">
+
+        <nav class="navbar container" aria-label="Main navigation">
+
+            <a href="/" class="logo" aria-label="SkillBridge home">
+
+                <span class="logo-icon" aria-hidden="true">S</span>
+
+                <span>
+                    Skill<span class="logo-highlight">Bridge</span>
+                </span>
+
+            </a>
+
+            <div class="dashboard-header-actions">
+
+                <div class="header-user">
+
+                    <span
+                        class="user-avatar"
+                        id="headerAvatar"
+                        aria-hidden="true"
+                    >U</span>
+
+                    <span id="headerUserName">Loading...</span>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="logout-button"
+                    id="logoutButton"
+                >
+                    Log Out
+                </button>
+
+            </div>
+
+        </nav>
+
+    </header>
+
+
+    <!-- =========================================
+         DASHBOARD LAYOUT
+         ========================================= -->
+
+    <main class="dashboard-container">
+
+        <!-- Sidebar -->
+
+        <aside class="dashboard-sidebar">
+
+            <p class="sidebar-label">WORKSPACE</p>
+
+            <nav
+                class="dashboard-nav"
+                aria-label="Dashboard navigation"
+            >
+
+                <a
+                    href="#overview"
+                    class="dashboard-nav-link active"
+                >
+                    <span aria-hidden="true">⌂</span>
+                    Overview
+                </a>
+
+                <a
+                    href="#resume"
+                    class="dashboard-nav-link"
+                >
+                    <span aria-hidden="true">▤</span>
+                    Resume Analysis
+                </a>
+
+                <a
+                    href="#jobs"
+                    class="dashboard-nav-link"
+                >
+                    <span aria-hidden="true">◎</span>
+                    Job Matches
+                </a>
+
+                <a
+                    href="#skills"
+                    class="dashboard-nav-link"
+                >
+                    <span aria-hidden="true">↗</span>
+                    Skill Gaps
+                </a>
+
+                <a
+                    href="#courses"
+                    class="dashboard-nav-link"
+                >
+                    <span aria-hidden="true">▣</span>
+                    Courses
+                </a>
+
+                <a
+                    href="#profile"
+                    class="dashboard-nav-link"
+                >
+                    <span aria-hidden="true">○</span>
+                    My Profile
+                </a>
+
+            </nav>
+
+            <!-- Sidebar help card -->
+
+            <div class="sidebar-help">
+
+                <div
+                    class="sidebar-help-icon"
+                    aria-hidden="true"
+                >
+                    ✦
+                </div>
+
+                <h3>Your career journey</h3>
+
+                <p>
+                    Analyze your skills and discover ways to prepare
+                    for your next opportunity.
+                </p>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =========================================
+             MAIN DASHBOARD CONTENT
+             ========================================= -->
+
+        <section class="dashboard-main" id="overview">
+
+            <!-- Welcome section -->
+
+            <div class="dashboard-welcome">
+
+                <div>
+
+                    <span class="eyebrow">
+                        YOUR PERSONAL WORKSPACE
+                    </span>
+
+                    <h1>
+                        Welcome back,
+                        <span id="welcomeName">there</span>!
+                    </h1>
+
+                    <p>
+                        Start with your resume and explore your
+                        career opportunities.
+                    </p>
+
+                </div>
+
+                <div class="account-badge">
+
+                    <span
+                        class="account-status-dot"
+                        aria-hidden="true"
+                    ></span>
+
+                    <span id="accountRole">
+                        Loading account...
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- Dashboard messages -->
+
+            <div
+                id="dashboardMessage"
+                class="dashboard-message"
+                role="status"
+                aria-live="polite"
+                hidden
+            ></div>
+
+
+            <!-- =====================================
+                 OVERVIEW STATISTICS
+                 ===================================== -->
+
+            <div class="dashboard-stats">
+
+                <!-- Resume status -->
+
+                <article class="dashboard-stat-card">
+
+                    <div
+                        class="dashboard-stat-icon purple"
+                        aria-hidden="true"
+                    >
+                        ▤
+                    </div>
+
+                    <p>Resume</p>
+
+                    <h2 id="resumeStat">Not started</h2>
+
+                    <small>Upload a resume to begin</small>
+
+                </article>
+
+
+                <!-- Job matches -->
+
+                <article class="dashboard-stat-card">
+
+                    <div
+                        class="dashboard-stat-icon blue"
+                        aria-hidden="true"
+                    >
+                        ◎
+                    </div>
+
+                    <p>Job Matches</p>
+
+                    <h2 id="jobMatchesStat">—</h2>
+
+                    <small>Jobs matching your skills</small>
+
+                </article>
+
+
+                <!-- Skill gaps -->
+
+                <article class="dashboard-stat-card">
+
+                    <div
+                        class="dashboard-stat-icon green"
+                        aria-hidden="true"
+                    >
+                        ↗
+                    </div>
+
+                    <p>Skill Gaps</p>
+
+                    <h2 id="skillGapsStat">—</h2>
+
+                    <small>Identify skills to improve</small>
+
+                </article>
+
+
+                <!-- Recommended courses -->
+
+                <article class="dashboard-stat-card">
+
+                    <div
+                        class="dashboard-stat-icon orange"
+                        aria-hidden="true"
+                    >
+                        ▣
+                    </div>
+
+                    <p>Courses</p>
+
+                    <h2 id="coursesStat">—</h2>
+
+                    <small>Discover learning resources</small>
+
+                </article>
+
+            </div>
+
+
+            <!-- =====================================
+                 RESUME UPLOAD, ANALYZE AND DELETE
+                 ===================================== -->
+
+            <section
+                class="dashboard-panel resume-panel"
+                id="resume"
+                aria-labelledby="resumeHeading"
+            >
+
+                <div class="panel-heading">
+
+                    <div>
+
+                        <span class="eyebrow">GET STARTED</span>
+
+                        <h2 id="resumeHeading">
+                            Analyze your resume
+                        </h2>
+
+                        <p>
+                            Upload your resume in PDF or DOCX format
+                            to begin your career analysis.
+                        </p>
+
+                    </div>
+
+                    <div
+                        class="panel-heading-icon"
+                        aria-hidden="true"
+                    >
+                        📄
+                    </div>
+
+                </div>
+
+
+                <!-- Resume upload form -->
+
+                <form
+                    id="resumeSelectionForm"
+                    enctype="multipart/form-data"
+                >
+
+                    <!-- File selection area -->
+
+                    <label
+                        for="resumeFile"
+                        class="resume-dropzone"
+                    >
+
+                        <span
+                            class="upload-icon"
+                            aria-hidden="true"
+                        >
+                            ↑
+                        </span>
+
+                        <strong>Choose your resume</strong>
+
+                        <span id="resumeFileHelp">
+                            Supported formats: PDF and DOCX
+                        </span>
+
+                        <span class="file-select-label">
+                            Browse files
+                        </span>
+
+                        <input
+                            type="file"
+                            id="resumeFile"
+                            name="file"
+                            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            aria-describedby="resumeFileHelp"
+                            required
+                        >
+
+                    </label>
+
+
+                    <!-- Selected or uploaded resume information -->
+
+                    <div class="selected-file-container">
+
+                        <p
+                            id="selectedFileName"
+                            class="selected-file-name"
+                            role="status"
+                            aria-live="polite"
+                            hidden
+                        ></p>
+
+                        <!-- Clears local browser selection -->
+
+                        <button
+                            type="button"
+                            id="clearResumeButton"
+                            class="clear-resume-button"
+                            aria-label="Clear selected resume"
+                            hidden
+                        >
+                            ✕ Clear Selection
+                        </button>
+
+                    </div>
+
+
+                    <!-- Upload button -->
+
+                    <button
+                        type="submit"
+                        class="button"
+                        id="prepareResumeButton"
+                    >
+                        Upload Resume
+                    </button>
+
+                </form>
+
+
+                <!-- Analyze the uploaded resume -->
+
+                <button
+                    type="button"
+                    class="button analyze-resume-button"
+                    id="analyzeResumeButton"
+                    aria-describedby="resumeAnalysisHelp"
+                    hidden
+                >
+                    Analyze Resume
+                </button>
+
+
+                <!-- Delete the uploaded resume -->
+
+                <button
+                    type="button"
+                    class="button delete-resume-button"
+                    id="deleteResumeButton"
+                    aria-label="Delete uploaded resume from SkillBridge"
+                    hidden
+                >
+                    Delete Uploaded Resume
+                </button>
+
+
+                <!-- Resume instructions -->
+
+                <p class="panel-note" id="resumeAnalysisHelp">
+
+                    <strong>Supported formats:</strong>
+
+                    PDF and DOCX. Choose your resume and click
+                    Upload Resume to send it to SkillBridge
+                    for processing.
+
+                    Clear Selection only clears the local selection.
+                    Analyze Resume extracts skills from your uploaded
+                    resume. Delete Uploaded Resume removes the stored
+                    resume from your SkillBridge account.
+
+                </p>
+
+            </section>
+
+
+            <!-- =====================================
+                 EXTRACTED RESUME SKILLS
+                 ===================================== -->
+
+            <section
+                class="dashboard-panel"
+                id="resumeSkillsPanel"
+                aria-labelledby="resumeSkillsHeading"
+                hidden
+            >
+
+                <div class="panel-heading compact-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            RESUME ANALYSIS
+                        </span>
+
+                        <h2 id="resumeSkillsHeading">
+                            Skills found in your resume
+                        </h2>
+
+                        <p>
+                            These are the skills detected by
+                            SkillBridge from your uploaded resume.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Skill extraction summary -->
+
+                <p
+                    id="resumeSkillsSummary"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                ></p>
+
+
+                <!-- No skills detected -->
+
+                <div
+                    id="resumeSkillsEmpty"
+                    class="empty-state"
+                    hidden
+                >
+
+                    <span
+                        class="empty-state-icon"
+                        aria-hidden="true"
+                    >
+                        ↗
+                    </span>
+
+                    <h3>No skills found</h3>
+
+                    <p>
+                        No skills were detected. Try a resume that
+                        clearly lists your skills, technologies,
+                        and qualifications.
+                    </p>
+
+                </div>
+
+
+                <!-- JavaScript adds extracted skills here -->
+
+                <ul
+                    id="resumeSkillsList"
+                    class="resume-skill-list"
+                    aria-label="Extracted resume skills"
+                ></ul>
+
+            </section>
+
+
+            <!-- =====================================
+                 RECOMMENDED JOBS
+                 ===================================== -->
+
+            <section
+                class="dashboard-panel"
+                id="jobs"
+                aria-labelledby="jobsHeading"
+            >
+
+                <div class="panel-heading compact-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            CAREER OPPORTUNITIES
+                        </span>
+
+                        <h2 id="jobsHeading">
+                            Recommended jobs
+                        </h2>
+
+                        <p>
+                            Discover jobs ranked according to
+                            the skills extracted from your resume.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Job recommendation messages -->
+
+                <div
+                    id="jobRecommendationsMessage"
+                    class="dashboard-message"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                ></div>
+
+
+                <!-- Empty state before recommendations are available -->
+
+                <div
+                    class="empty-state"
+                    id="recommendedJobsEmpty"
+                >
+
+                    <span
+                        class="empty-state-icon"
+                        aria-hidden="true"
+                    >
+                        ◎
+                    </span>
+
+                    <h3>Your job matches will appear here</h3>
+
+                    <p>
+                        Upload your resume and analyze your skills
+                        to discover suitable job opportunities.
+                    </p>
+
+                </div>
+
+
+                <!-- JavaScript adds recommended job cards here -->
+
+                <div
+                    id="recommendedJobsList"
+                    class="recommended-jobs-list"
+                    aria-live="polite"
+                ></div>
+
+            </section>
+
+
+            <!-- =====================================
+                 SKILL GAPS AND COURSE RECOMMENDATIONS
+                 ===================================== -->
+
+            <div class="dashboard-bottom-grid">
+
+                <!-- Skill gap analysis -->
+
+                <section
+                    class="dashboard-panel"
+                    id="skills"
+                    aria-labelledby="skillsHeading"
+                >
+
+                    <div class="panel-heading compact-heading">
+
+                        <div>
+
+                            <span class="eyebrow">
+                                KEEP IMPROVING
+                            </span>
+
+                            <h2 id="skillsHeading">
+                                Skill gap analysis
+                            </h2>
+
+                            <p>
+                                Find out which skills you need
+                                to improve for suitable jobs.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Skill gap status -->
+
+                    <div
+                        id="skillGapsMessage"
+                        class="dashboard-message"
+                        role="status"
+                        aria-live="polite"
+                        hidden
+                    ></div>
+
+
+                    <!-- Summary is required by dashboard.js -->
+
+                    <p
+                        id="skillGapsSummary"
+                        role="status"
+                        aria-live="polite"
+                        hidden
+                    ></p>
+
+
+                    <!-- JavaScript adds missing skills here -->
+
+                    <div
+                        id="skillGapsList"
+                        class="skill-gap-list"
+                        aria-live="polite"
+                    ></div>
+
+
+                    <!-- Initial empty state -->
+
+                    <div
+                        class="mini-empty-state"
+                        id="skillGapsEmpty"
+                    >
+
+                        <span
+                            class="mini-state-icon"
+                            aria-hidden="true"
+                        >
+                            ↗
+                        </span>
+
+                        <p>
+                            Your missing skills will be listed here
+                            after resume and job analysis.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- Course recommendations -->
+
+                <section
+                    class="dashboard-panel"
+                    id="courses"
+                    aria-labelledby="coursesHeading"
+                >
+
+                    <div class="panel-heading compact-heading">
+
+                        <div>
+
+                            <span class="eyebrow">
+                                KEEP LEARNING
+                            </span>
+
+                            <h2 id="coursesHeading">
+                                Recommended courses
+                            </h2>
+
+                            <p>
+                                Find learning resources that help
+                                you develop missing skills.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Course recommendation status -->
+
+                    <div
+                        id="coursesMessage"
+                        class="dashboard-message"
+                        role="status"
+                        aria-live="polite"
+                        hidden
+                    ></div>
+
+
+                    <!-- JavaScript adds course cards here -->
+
+                    <div
+                        id="recommendedCoursesList"
+                        class="recommended-courses-list"
+                        aria-live="polite"
+                    ></div>
+
+
+                    <!-- Initial empty state -->
+
+                    <div
+                        class="mini-empty-state"
+                        id="coursesEmpty"
+                    >
+
+                        <span
+                            class="mini-state-icon"
+                            aria-hidden="true"
+                        >
+                            ▣
+                        </span>
+
+                        <p>
+                            Recommended courses will appear here
+                            after skill-gap analysis.
+                        </p>
+
+                    </div>
+
+                </section>
+
+            </div>
+
+
+            <!-- =====================================
+                 PROFILE INFORMATION
+                 ===================================== -->
+
+            <section
+                class="dashboard-panel profile-panel"
+                id="profile"
+                aria-labelledby="profileHeading"
+            >
+
+                <div class="panel-heading compact-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            YOUR ACCOUNT
+                        </span>
+
+                        <h2 id="profileHeading">
+                            Profile information
+                        </h2>
+
+                        <p>
+                            Information associated with your
+                            SkillBridge account.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-details">
+
+                    <!-- User name -->
+
+                    <div class="profile-detail">
+
+                        <span>Name</span>
+
+                        <strong id="profileName">
+                            Loading...
+                        </strong>
+
+                    </div>
+
+
+                    <!-- User email -->
+
+                    <div class="profile-detail">
+
+                        <span>Email</span>
+
+                        <strong id="profileEmail">
+                            Loading...
+                        </strong>
+
+                    </div>
+
+
+                    <!-- User role -->
+
+                    <div class="profile-detail">
+
+                        <span>Role</span>
+
+                        <strong id="profileRole">
+                            Loading...
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+    </main>
+
+
+    <!-- =========================================
+         FOOTER
+         ========================================= -->
+
+    <footer class="site-footer dashboard-footer">
+
+        <div class="container footer-content">
+
+            <a href="/" class="logo" aria-label="SkillBridge home">
+
+                <span class="logo-icon" aria-hidden="true">S</span>
+
+                <span>
+                    Skill<span class="logo-highlight">Bridge</span>
+                </span>
+
+            </a>
+
+            <p>
+                © <span id="currentYear"></span> SkillBridge
+            </p>
+
+        </div>
+
+    </footer>
+
+</body>
+</html>

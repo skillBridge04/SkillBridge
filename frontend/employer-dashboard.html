@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="description"
+        content="Manage your company and job postings with SkillBridge."
+    >
+
+    <title>Employer Dashboard | SkillBridge</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/employer-dashboard.js" defer></script>
+
+    <style>
+        .employer-page {
+            background: #f5f7fb;
+            color: #18243a;
+            min-height: 100vh;
+        }
+
+        .employer-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #fff;
+            border-bottom: 1px solid #e4e9f2;
+        }
+
+        .employer-header .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            min-height: 76px;
+        }
+
+        .employer-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 14px;
+        }
+
+        .employer-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .employer-avatar {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: #e9eaff;
+            color: #4338ca;
+            font-weight: 800;
+        }
+
+        .employer-layout {
+            display: grid;
+            grid-template-columns: 245px minmax(0, 1fr);
+            gap: 24px;
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 28px 24px 48px;
+        }
+
+        .employer-sidebar {
+            align-self: start;
+            position: sticky;
+            top: 100px;
+            padding: 20px 14px;
+            border: 1px solid #e4e9f2;
+            border-radius: 20px;
+            background: #fff;
+        }
+
+        .employer-sidebar-label {
+            margin: 0 10px 12px;
+            color: #7d879a;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.4px;
+        }
+
+        .employer-nav {
+            display: grid;
+            gap: 6px;
+        }
+
+        .employer-nav a {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 12px 13px;
+            border-radius: 11px;
+            color: #526079;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 650;
+            transition: background .15s, color .15s;
+        }
+
+        .employer-nav a:hover,
+        .employer-nav a.active {
+            background: #eeefff;
+            color: #4338ca;
+        }
+
+        .employer-sidebar-note {
+            margin-top: 25px;
+            padding: 16px;
+            border-radius: 15px;
+            background: #f5f6ff;
+        }
+
+        .employer-sidebar-note h3 {
+            margin: 0 0 7px;
+            font-size: 14px;
+        }
+
+        .employer-sidebar-note p {
+            margin: 0;
+            color: #68748c;
+            font-size: 12px;
+            line-height: 1.65;
+        }
+
+        .employer-main {
+            min-width: 0;
+        }
+
+        .employer-welcome {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        .employer-eyebrow {
+            display: inline-block;
+            margin-bottom: 8px;
+            color: #5b5bd6;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.3px;
+        }
+
+        .employer-welcome h1 {
+            margin: 0 0 9px;
+            font-size: clamp(25px, 3vw, 34px);
+            line-height: 1.2;
+        }
+
+        .employer-welcome p {
+            margin: 0;
+            color: #6b768b;
+            line-height: 1.65;
+        }
+
+        .employer-role-badge {
+            flex-shrink: 0;
+            padding: 9px 12px;
+            border: 1px solid #dcdfff;
+            border-radius: 999px;
+            background: #fff;
+            color: #4c4ec5;
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .employer-alert {
+            margin-bottom: 20px;
+            padding: 15px 17px;
+            border: 1px solid #dce5f5;
+            border-radius: 13px;
+            background: #fff;
+            color: #43516b;
+            line-height: 1.6;
+        }
+
+        .employer-alert.success {
+            border-color: #b9e6cb;
+            background: #f0fbf4;
+            color: #17633b;
+        }
+
+        .employer-alert.error {
+            border-color: #f3c4c4;
+            background: #fff4f4;
+            color: #a32b35;
+        }
+
+        .employer-alert.warning {
+            border-color: #f1d89b;
+            background: #fff9e9;
+            color: #79520b;
+        }
+
+        .employer-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 15px;
+            margin-bottom: 23px;
+        }
+
+        .employer-stat {
+            min-width: 0;
+            padding: 20px;
+            border: 1px solid #e5eaf3;
+            border-radius: 17px;
+            background: #fff;
+        }
+
+        .employer-stat-label {
+            margin: 0 0 12px;
+            color: #6e7a90;
+            font-size: 13px;
+            font-weight: 650;
+        }
+
+        .employer-stat-value {
+            margin: 0;
+            font-size: 29px;
+            line-height: 1.1;
+            font-weight: 800;
+        }
+
+        .employer-stat-hint {
+            display: block;
+            margin-top: 9px;
+            color: #8b95a7;
+            font-size: 11px;
+        }
+
+        .employer-panel {
+            margin-bottom: 22px;
+            padding: 24px;
+            border: 1px solid #e3e9f2;
+            border-radius: 19px;
+            background: #fff;
+            scroll-margin-top: 105px;
+        }
+
+        .employer-panel-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .employer-panel-heading h2 {
+            margin: 0 0 8px;
+            font-size: 20px;
+        }
+
+        .employer-panel-heading p {
+            margin: 0;
+            color: #6c7890;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .employer-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 17px;
+        }
+
+        .employer-field {
+            display: grid;
+            align-content: start;
+            gap: 7px;
+            min-width: 0;
+        }
+
+        .employer-field.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .employer-field label {
+            color: #34415a;
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .employer-field input,
+        .employer-field textarea,
+        .employer-field select {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            padding: 11px 12px;
+            border: 1px solid #dce3ee;
+            border-radius: 10px;
+            background: #fff;
+            color: #243047;
+            font: inherit;
+            font-size: 13px;
+        }
+
+        .employer-field textarea {
+            min-height: 110px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .employer-field select[multiple] {
+            min-height: 150px;
+        }
+
+        .employer-field input:focus,
+        .employer-field textarea:focus,
+        .employer-field select:focus {
+            outline: 3px solid #e6e7ff;
+            border-color: #7c83f6;
+        }
+
+        .employer-help {
+            color: #78849a;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .employer-form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .employer-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            min-height: 40px;
+            padding: 10px 15px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 800;
+            text-decoration: none;
+            transition: opacity .15s, transform .15s;
+        }
+
+        .employer-button:hover {
+            opacity: .9;
+        }
+
+        .employer-button:active {
+            transform: translateY(1px);
+        }
+
+        .employer-button:disabled {
+            cursor: not-allowed;
+            opacity: .55;
+        }
+
+        .employer-button.primary {
+            background: #4f46e5;
+            color: #fff;
+        }
+
+        .employer-button.secondary {
+            border-color: #dce3ee;
+            background: #fff;
+            color: #43506a;
+        }
+
+        .employer-button.danger {
+            border-color: #f2d0d2;
+            background: #fff4f4;
+            color: #a32b35;
+        }
+
+        .employer-company-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #eefbf3;
+            color: #1c7546;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .employer-table-wrap {
+            overflow-x: auto;
+            border: 1px solid #e7ebf3;
+            border-radius: 12px;
+        }
+
+        .employer-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+            font-size: 12px;
+        }
+
+        .employer-table th {
+            padding: 13px 14px;
+            background: #f8f9fc;
+            color: #6d7890;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            font-size: 10px;
+        }
+
+        .employer-table td {
+            padding: 15px 14px;
+            border-top: 1px solid #edf0f5;
+            vertical-align: top;
+            color: #46536b;
+        }
+
+        .employer-table td strong {
+            color: #23314a;
+        }
+
+        .employer-table-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .employer-table-actions .employer-button {
+            min-height: 30px;
+            padding: 6px 9px;
+            font-size: 10px;
+        }
+
+        .employer-status {
+            display: inline-block;
+            padding: 5px 8px;
+            border-radius: 999px;
+            background: #eef2f7;
+            color: #5c687e;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .employer-status.active {
+            background: #e6f8ed;
+            color: #187245;
+        }
+
+        .employer-status.draft {
+            background: #fff4d6;
+            color: #8a5b00;
+        }
+
+        .employer-status.inactive {
+            background: #fbe9e9;
+            color: #a42e39;
+        }
+
+        .employer-empty-state {
+            padding: 25px 14px;
+            color: #77839a;
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .employer-profile-details {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .employer-profile-item {
+            padding: 13px;
+            border: 1px solid #e8edf4;
+            border-radius: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .employer-profile-item span {
+            display: block;
+            margin-bottom: 7px;
+            color: #77839a;
+            font-size: 11px;
+        }
+
+        .employer-profile-item strong {
+            color: #243047;
+            font-size: 13px;
+        }
+
+        .employer-footer {
+            padding: 20px 0;
+            border-top: 1px solid #e4e9f2;
+            color: #7b879b;
+            font-size: 12px;
+        }
+
+        .employer-footer .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        @media (max-width: 1050px) {
+            .employer-layout {
+                grid-template-columns: 205px minmax(0, 1fr);
+                gap: 16px;
+                padding: 20px 16px 35px;
+            }
+
+            .employer-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .employer-layout {
+                display: block;
+                padding: 15px 12px 30px;
+            }
+
+            .employer-sidebar {
+                position: static;
+                margin-bottom: 18px;
+                padding: 12px;
+            }
+
+            .employer-nav {
+                display: flex;
+                overflow-x: auto;
+                gap: 5px;
+            }
+
+            .employer-nav a {
+                flex: 0 0 auto;
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            .employer-sidebar-note,
+            .employer-sidebar-label {
+                display: none;
+            }
+
+            .employer-stats {
+                gap: 10px;
+            }
+
+            .employer-stat {
+                padding: 15px;
+            }
+
+            .employer-stat-value {
+                font-size: 24px;
+            }
+
+            .employer-panel {
+                padding: 18px 14px;
+            }
+
+            .employer-form-grid,
+            .employer-profile-details {
+                grid-template-columns: 1fr;
+            }
+
+            .employer-welcome {
+                display: block;
+            }
+
+            .employer-role-badge {
+                display: inline-block;
+                margin-top: 14px;
+            }
+
+            .employer-header .navbar {
+                min-height: 65px;
+            }
+
+            .employer-header-actions {
+                gap: 8px;
+            }
+
+            .employer-user {
+                gap: 7px;
+                font-size: 12px;
+            }
+
+            .employer-avatar {
+                width: 34px;
+                height: 34px;
+                border-radius: 10px;
+            }
+
+            .employer-footer .container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body class="employer-page">
+
+    <header class="site-header employer-header">
+        <nav class="navbar container" aria-label="Main navigation">
+            <a href="/" class="logo" aria-label="SkillBridge home">
+                <span class="logo-icon" aria-hidden="true">S</span>
+                <span>Skill<span class="logo-highlight">Bridge</span></span>
+            </a>
+
+            <div class="employer-header-actions">
+                <div class="employer-user">
+                    <span class="employer-avatar" id="employerAvatar">E</span>
+                    <span id="employerHeaderName">Loading...</span>
+                </div>
+
+                <button
+                    type="button"
+                    class="employer-button secondary"
+                    id="employerLogoutButton"
+                >
+                    Log Out
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="employer-layout">
+
+        <aside class="employer-sidebar">
+            <p class="employer-sidebar-label">EMPLOYER WORKSPACE</p>
+
+            <nav class="employer-nav" aria-label="Employer navigation">
+                <a href="#employerOverview" class="active">⌂ Overview</a>
+                <a href="#companyProfile">▣ Company Profile</a>
+                <a href="#jobEditor">＋ Create Job</a>
+                <a href="#jobPostings">▤ My Job Posts</a>
+                <a href="#employerProfile">○ Account</a>
+            </nav>
+
+            <div class="employer-sidebar-note">
+                <h3>Build your team</h3>
+                <p>
+                    Create clear job descriptions, choose required skills,
+                    and keep your company's job postings up to date.
+                </p>
+            </div>
+        </aside>
+
+        <section class="employer-main" id="employerOverview">
+
+            <div class="employer-welcome">
+                <div>
+                    <span class="employer-eyebrow">EMPLOYER WORKSPACE</span>
+                    <h1>Welcome back, <span id="employerWelcomeName">Employer</span>!</h1>
+                    <p>
+                        Manage your company profile and find the right
+                        talent through SkillBridge.
+                    </p>
+                </div>
+
+                <span class="employer-role-badge" id="employerRoleBadge">
+                    Employer / Recruiter
+                </span>
+            </div>
+
+            <div
+                id="employerMessage"
+                class="employer-alert"
+                role="status"
+                aria-live="polite"
+                hidden
+            ></div>
+
+            <div
+                id="approvalBanner"
+                class="employer-alert warning"
+                role="status"
+                hidden
+            >
+                <strong>Account verification required</strong>
+                <p>
+                    Your employer account is awaiting administrator approval.
+                    Company and job-management actions will be available
+                    after your account is approved.
+                </p>
+            </div>
+
+            <section id="employerWorkspace">
+
+                <div class="employer-stats">
+                    <article class="employer-stat">
+                        <p class="employer-stat-label">Total Job Posts</p>
+                        <h2 class="employer-stat-value" id="employerTotalJobs">0</h2>
+                        <small class="employer-stat-hint">All your job postings</small>
+                    </article>
+
+                    <article class="employer-stat">
+                        <p class="employer-stat-label">Active Jobs</p>
+                        <h2 class="employer-stat-value" id="employerActiveJobs">0</h2>
+                        <small class="employer-stat-hint">Currently available</small>
+                    </article>
+
+                    <article class="employer-stat">
+                        <p class="employer-stat-label">Inactive Jobs</p>
+                        <h2 class="employer-stat-value" id="employerInactiveJobs">0</h2>
+                        <small class="employer-stat-hint">Draft or inactive posts</small>
+                    </article>
+
+                    <article class="employer-stat">
+                        <p class="employer-stat-label">Company Profile</p>
+                        <h2 class="employer-stat-value" id="employerCompanyStatus">Not set up</h2>
+                        <small class="employer-stat-hint">Your organization details</small>
+                    </article>
+                </div>
+
+                <!-- Company profile editor -->
+
+                <section class="employer-panel" id="companyProfile">
+                    <div class="employer-panel-heading">
+                        <div>
+                            <span class="employer-eyebrow">YOUR ORGANIZATION</span>
+                            <h2>Company Profile</h2>
+                            <p>
+                                Add your organization's details. Your employer
+                                account can manage only its own company profile.
+                            </p>
+                        </div>
+
+                        <span class="employer-company-status" id="companyStatusBadge">
+                            Not created
+                        </span>
+                    </div>
+
+                    <form id="employerCompanyForm">
+                        <div class="employer-form-grid">
+                            <div class="employer-field">
+                                <label for="employerCompanyName">Company Name *</label>
+                                <input
+                                    id="employerCompanyName"
+                                    name="name"
+                                    maxlength="150"
+                                    required
+                                    placeholder="e.g. SkillBridge Technologies"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerCompanyIndustry">Industry</label>
+                                <input
+                                    id="employerCompanyIndustry"
+                                    name="industry"
+                                    maxlength="100"
+                                    placeholder="e.g. Software and IT"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerCompanyLocation">Location</label>
+                                <input
+                                    id="employerCompanyLocation"
+                                    name="location"
+                                    maxlength="150"
+                                    placeholder="e.g. Dhaka, Bangladesh"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerCompanyWebsite">Website</label>
+                                <input
+                                    id="employerCompanyWebsite"
+                                    name="website"
+                                    type="url"
+                                    maxlength="500"
+                                    placeholder="https://example.com"
+                                >
+                            </div>
+
+                            <div class="employer-field full-width">
+                                <label for="employerCompanyDescription">Company Description</label>
+                                <textarea
+                                    id="employerCompanyDescription"
+                                    name="description"
+                                    maxlength="5000"
+                                    placeholder="Describe your company, services, culture, and work environment."
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div class="employer-form-actions">
+                            <button type="submit" class="employer-button primary" id="saveCompanyButton">
+                                Save Company Profile
+                            </button>
+
+                            <button type="button" class="employer-button secondary" id="refreshEmployerButton">
+                                Refresh Dashboard
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Job creation and editing form -->
+
+                <section class="employer-panel" id="jobEditor">
+                    <div class="employer-panel-heading">
+                        <div>
+                            <span class="employer-eyebrow">RECRUITMENT</span>
+                            <h2 id="jobEditorHeading">Create a Job Posting</h2>
+                            <p>
+                                Provide accurate job details and select
+                                at least one required skill.
+                            </p>
+                        </div>
+                    </div>
+
+                    <form id="employerJobForm">
+                        <input type="hidden" id="employerJobId">
+
+                        <div class="employer-form-grid">
+                            <div class="employer-field full-width">
+                                <label for="employerJobTitle">Job Title *</label>
+                                <input
+                                    id="employerJobTitle"
+                                    maxlength="200"
+                                    required
+                                    placeholder="e.g. Junior Python Developer"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerJobLocation">Location</label>
+                                <input
+                                    id="employerJobLocation"
+                                    maxlength="150"
+                                    placeholder="e.g. Dhaka, Bangladesh"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerEmploymentType">Employment Type</label>
+                                <select id="employerEmploymentType">
+                                    <option value="Full-time">Full-time</option>
+                                    <option value="Part-time">Part-time</option>
+                                    <option value="Contract">Contract</option>
+                                    <option value="Internship">Internship</option>
+                                    <option value="Remote">Remote</option>
+                                </select>
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerSalaryMin">Minimum Salary</label>
+                                <input
+                                    id="employerSalaryMin"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    placeholder="30000"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerSalaryMax">Maximum Salary</label>
+                                <input
+                                    id="employerSalaryMax"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    placeholder="50000"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerCurrency">Salary Currency</label>
+                                <select id="employerCurrency">
+                                    <option value="BDT">BDT (৳)</option>
+                                    <option value="USD">USD ($)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                </select>
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerExperience">Experience Required</label>
+                                <input
+                                    id="employerExperience"
+                                    maxlength="100"
+                                    placeholder="e.g. 0–1 years"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerEducation">Education Required</label>
+                                <input
+                                    id="employerEducation"
+                                    maxlength="200"
+                                    placeholder="e.g. BSc in CSE or related field"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerApplicationUrl">Application URL</label>
+                                <input
+                                    id="employerApplicationUrl"
+                                    type="url"
+                                    maxlength="1000"
+                                    placeholder="https://example.com/apply"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerJobDeadline">Application Deadline</label>
+                                <input
+                                    id="employerJobDeadline"
+                                    type="datetime-local"
+                                >
+                            </div>
+
+                            <div class="employer-field">
+                                <label for="employerJobStatus">Posting Status</label>
+                                <select id="employerJobStatus">
+                                    <option value="ACTIVE">Publish job</option>
+                                    <option value="DRAFT">Save as draft</option>
+                                </select>
+                            </div>
+
+                            <div class="employer-field full-width">
+                                <label for="employerRequiredSkills">Required Skills *</label>
+                                <select
+                                    id="employerRequiredSkills"
+                                    multiple
+                                    required
+                                    aria-describedby="employerSkillsHelp"
+                                ></select>
+                                <span id="employerSkillsHelp" class="employer-help">
+                                    Select one or more skills. Hold Ctrl on Windows
+                                    or Command on macOS to select multiple skills.
+                                </span>
+                            </div>
+
+                            <div class="employer-field full-width">
+                                <label for="employerJobDescription">Job Description *</label>
+                                <textarea
+                                    id="employerJobDescription"
+                                    maxlength="10000"
+                                    required
+                                    placeholder="Describe the responsibilities, qualifications, and expectations for this role."
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div class="employer-form-actions">
+                            <button type="submit" class="employer-button primary" id="saveEmployerJobButton">
+                                Create Job Posting
+                            </button>
+
+                            <button type="button" class="employer-button secondary" id="cancelEmployerJobEditButton" hidden>
+                                Cancel Editing
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Employer's jobs -->
+
+                <section class="employer-panel" id="jobPostings">
+                    <div class="employer-panel-heading">
+                        <div>
+                            <span class="employer-eyebrow">YOUR RECRUITMENT ACTIVITY</span>
+                            <h2>My Job Postings</h2>
+                            <p>
+                                View and manage postings created by your company.
+                            </p>
+                        </div>
+
+                        <button type="button" class="employer-button secondary" id="refreshEmployerJobsButton">
+                            Refresh Jobs
+                        </button>
+                    </div>
+
+                    <div class="employer-table-wrap">
+                        <table class="employer-table">
+                            <thead>
+                                <tr>
+                                    <th>Job</th>
+                                    <th>Location</th>
+                                    <th>Salary Range</th>
+                                    <th>Status</th>
+                                    <th>Required Skills</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="employerJobsTableBody">
+                                <tr>
+                                    <td colspan="6" class="employer-empty-state">
+                                        Loading your job postings...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Read-only user profile -->
+
+                <section class="employer-panel" id="employerProfile">
+                    <div class="employer-panel-heading">
+                        <div>
+                            <span class="employer-eyebrow">ACCOUNT SETTINGS</span>
+                            <h2>Your Account</h2>
+                            <p>Your account details from SkillBridge.</p>
+                        </div>
+                    </div>
+
+                    <div class="employer-profile-details">
+                        <div class="employer-profile-item">
+                            <span>Full Name</span>
+                            <strong id="employerProfileName">Loading...</strong>
+                        </div>
+
+                        <div class="employer-profile-item">
+                            <span>Email</span>
+                            <strong id="employerProfileEmail">Loading...</strong>
+                        </div>
+
+                        <div class="employer-profile-item">
+                            <span>Role</span>
+                            <strong id="employerProfileRole">Employer / Recruiter</strong>
+                        </div>
+                    </div>
+                </section>
+
+            </section>
+        </section>
+    </main>
+
+    <footer class="site-footer employer-footer">
+        <div class="container">
+            <a href="/" class="logo" aria-label="SkillBridge home">
+                <span class="logo-icon" aria-hidden="true">S</span>
+                <span>Skill<span class="logo-highlight">Bridge</span></span>
+            </a>
+
+            <p>© <span id="employerCurrentYear"></span> SkillBridge. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
