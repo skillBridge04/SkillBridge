@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy import select
 
 from app.core.database import SessionLocal
@@ -6,16 +8,21 @@ from app.models.user import User
 
 
 def create_admin():
+    email = os.getenv("ADMIN_EMAIL")
+    password = os.getenv("ADMIN_PASSWORD")
+    if not email or not password:
+        raise RuntimeError(
+            "Set ADMIN_EMAIL and ADMIN_PASSWORD environment variables "
+            "before creating an admin."
+        )
+
+    name = os.getenv("ADMIN_NAME", "SkillBridge Admin")
     db = SessionLocal()
 
     try:
         # -------------------------------------------------
         # Admin information
         # -------------------------------------------------
-
-        name = "SkillBridge Admin"
-        email = "admin@skillbridge.com"
-        password = "Admin@123456"
 
         # -------------------------------------------------
         # Check if Admin already exists
