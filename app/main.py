@@ -22,6 +22,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from pathlib import Path
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -33,6 +34,10 @@ from app.routers.matching import router as matching_router
 from app.routers.courses import router as courses_router
 from app.routers.analysis import router as analysis_router
 
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from app.routers.jobs import router as jobs_router
+
 # NOTE: no routers are wired in yet — Part 3 (auth), Part 4 (resume upload),
 # etc. will each add one `app.include_router(...)` line below, once those
 # modules exist. Nothing to import yet in Part 1.
@@ -42,6 +47,14 @@ app = FastAPI(
     description="AI-Powered Career Recommendation and Skill Gap Analysis Platform",
     version="0.2.0",
     debug=settings.DEBUG,
+)
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
+app.mount(
+    "/static",
+    StaticFiles(directory=str(FRONTEND_DIR)),
+    name="static",
 )
 
 # CORS: allows a separate frontend (Part 11) running on a different
@@ -70,15 +83,14 @@ app.include_router(matching_router)
 app.include_router(courses_router)
 # Complete analysis routes
 app.include_router(analysis_router)
+# Job listing routes
+app.include_router(jobs_router)
 
 
-@app.get("/", tags=["root"])
-def read_root():
-    """Basic landing route so hitting the base URL doesn't 404."""
-    return {
-        "message": f"{settings.APP_NAME} API is running",
-        "docs": "/docs",
-    }
+@app.get("/", include_in_schema=False)
+def landing_page():
+    """Serve the SkillBridge landing page."""
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 
 @app.get("/health", tags=["root"])
@@ -104,3 +116,33 @@ def database_check(db: Session = Depends(get_db)):
         "database": "connected",
         "result": result.scalar(),
     }
+
+@app.get("/login", include_in_schema=False)
+def login_page():
+    """Serve the login page."""
+    return FileResponse(FRONTEND_DIR / "login.html")
+
+
+@app.get("/register", include_in_schema=False)
+def register_page():
+    """Serve the registration page."""
+    return FileResponse(FRONTEND_DIR / "register.html")
+
+
+@app.get("/dashboard", include_in_schema=False)
+def dashboard_page():
+    """Serve the SkillBridge dashboard."""
+    return FileResponse(FRONTEND_DIR / "dashboard.html")
+
+# Use the FRONTEND_DIR variable already defined in your main.py.
+
+@app.get("/employer-dashboard", include_in_schema=False)
+def employer_dashboard_page():
+    return FileResponse(
+        FRONTEND_DIR / "employer-dashboard.html"
+    )
+
+@app.get("/admin", include_in_schema=False)
+def admin_page():
+    """Serve the SkillBridge administrator dashboard."""
+    return FileResponse(FRONTEND_DIR / "admin.html")

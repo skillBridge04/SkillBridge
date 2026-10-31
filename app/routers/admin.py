@@ -1,15 +1,45 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from urllib.parse import urlparse
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import require_admin
-from app.models.user import User
-from app.schemas.auth import UserResponse
-
 from app.core.security import hash_password
-from app.schemas.admin import AdminCreate
 
+from app.models.user import User
+from app.models.skill import Skill
+from app.models.course import Course
+
+from app.schemas.auth import UserResponse
+from app.schemas.admin import (
+    AdminCreate,
+    SkillCreate,
+    SkillUpdate,
+    SkillAdminResponse,
+    CourseCreate,
+    CourseUpdate,
+    CourseAdminResponse,
+)
+
+from datetime import datetime, timezone
+
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
+
+from app.models.company import Company
+from app.models.job import Job
+from app.models.job_skill import JobSkill
+
+from app.schemas.company import CompanyCreate
+from app.schemas.admin import (
+    CompanyAdminResponse,
+    CompanyAdminUpdate,
+    AdminJobCreate,
+    AdminJobUpdate,
+    AdminJobResponse,
+)
 
 router = APIRouter(
     prefix="/api/admin",
@@ -30,7 +60,7 @@ def get_pending_employers(
     current_admin: User = Depends(require_admin),
 ):
     """
-    Get all employers waiting for Admin approval.
+    Get all employers waiting for admin approval.
     """
 
     pending_employers = db.scalars(
@@ -59,33 +89,29 @@ def approve_employer(
     current_admin: User = Depends(require_admin),
 ):
     """
-    Approve a pending Employer.
+    Approve a pending employer.
     """
 
     employer = db.get(User, user_id)
 
-    # User doesn't exist
     if employer is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="User not found.",
         )
 
-    # Make sure this user is an Employer
     if employer.role != "EMPLOYER":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This user is not an Employer",
+            detail="This user is not an employer.",
         )
 
-    # Make sure employer is pending
     if employer.account_status != "PENDING":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This Employer is not pending approval",
+            detail="This employer is not pending approval.",
         )
 
-    # Approve employer
     employer.account_status = "ACTIVE"
 
     db.commit()
@@ -108,33 +134,29 @@ def reject_employer(
     current_admin: User = Depends(require_admin),
 ):
     """
-    Reject a pending Employer.
+    Reject a pending employer.
     """
 
     employer = db.get(User, user_id)
 
-    # User doesn't exist
     if employer is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="User not found.",
         )
 
-    # Make sure this user is an Employer
     if employer.role != "EMPLOYER":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This user is not an Employer",
+            detail="This user is not an employer.",
         )
 
-    # Make sure employer is pending
     if employer.account_status != "PENDING":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This Employer is not pending approval",
+            detail="This employer is not pending approval.",
         )
 
-    # Reject employer
     employer.account_status = "REJECTED"
 
     db.commit()
@@ -142,7 +164,8 @@ def reject_employer(
 
     return employer
 
-# =========================================================# =========================================================
+
+# =========================================================
 # CREATE ANOTHER ADMIN
 # =========================================================
 
@@ -157,34 +180,27 @@ def create_admin(
     current_admin: User = Depends(require_admin),
 ):
     """
-    Create a new Admin account.
-
-    Only an existing Admin can create another Admin.
+    Create another admin account.
+    Only an existing admin can create an admin.
     """
 
-    # Check if email already exists
     existing_user = db.scalar(
         select(User).where(
-            User.email == admin_data.email
+            func.lower(User.email) ==
+            admin_data.email.lower()
         )
     )
 
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
+            detail="Email already registered.",
         )
 
-    # Hash password
-    hashed_password = hash_password(
-        admin_data.password
-    )
-
-    # Create Admin
     new_admin = User(
-        name=admin_data.name,
+        name=admin_data.name.strip(),
         email=admin_data.email,
-        password_hash=hashed_password,
+        password_hash=hash_password(admin_data.password),
         role="ADMIN",
         account_status="ACTIVE",
     )
@@ -194,6 +210,7 @@ def create_admin(
     db.refresh(new_admin)
 
     return new_admin
+
 
 # =========================================================
 # LIST ADMINS
@@ -208,7 +225,7 @@ def get_admins(
     current_admin: User = Depends(require_admin),
 ):
     """
-    Get all Admin accounts.
+    Get all admin accounts.
     """
 
     admins = db.scalars(
@@ -218,6 +235,7 @@ def get_admins(
     ).all()
 
     return admins
+
 
 # =========================================================
 # DEACTIVATE ADMIN
@@ -233,7 +251,7 @@ def deactivate_admin(
     current_admin: User = Depends(require_admin),
 ):
     """
-    Deactivate an Admin account.
+    Deactivate another admin account.
     """
 
     admin = db.get(User, user_id)
@@ -241,20 +259,19 @@ def deactivate_admin(
     if admin is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="User not found.",
         )
 
     if admin.role != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This user is not an Admin",
+            detail="This user is not an admin.",
         )
 
-    # Prevent Admin from deactivating themselves
     if admin.id == current_admin.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot deactivate your own Admin account",
+            detail="You cannot deactivate your own admin account.",
         )
 
     admin.account_status = "INACTIVE"
@@ -277,7 +294,7 @@ def activate_admin(
     current_admin: User = Depends(require_admin),
 ):
     """
-    Activate an Admin account.
+    Activate an admin account.
     """
 
     admin = db.get(User, user_id)
@@ -285,13 +302,13 @@ def activate_admin(
     if admin is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail="User not found.",
         )
 
     if admin.role != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This user is not an Admin",
+            detail="This user is not an admin.",
         )
 
     admin.account_status = "ACTIVE"
