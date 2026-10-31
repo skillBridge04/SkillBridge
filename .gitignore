@@ -156,6 +156,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+uploads/resumes/
 
 # Spyder project settings
 .spyderproject
