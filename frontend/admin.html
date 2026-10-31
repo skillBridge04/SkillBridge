@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="description"
+        content="SkillBridge administrator dashboard for managing employers, companies, jobs, skills, courses, and administrator accounts."
+    >
+
+    <title>Admin Dashboard | SkillBridge</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/admin.js" defer></script>
+
+    <style>
+        .admin-page {
+            min-height: 100vh;
+            background: var(--bg);
+        }
+
+        .admin-container {
+            width: min(1360px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 32px 0 60px;
+        }
+
+        .admin-welcome {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .admin-welcome h1 {
+            margin-bottom: 8px;
+            font-size: clamp(25px, 3vw, 36px);
+        }
+
+        .admin-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .admin-summary-card {
+            min-width: 0;
+            padding: 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .admin-summary-card p {
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .admin-summary-card h2 {
+            margin: 0;
+            font-size: 26px;
+            overflow-wrap: anywhere;
+        }
+
+        .admin-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 22px;
+        }
+
+        .admin-nav a {
+            display: inline-flex;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .admin-nav a:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .admin-panel {
+            scroll-margin-top: 25px;
+        }
+
+        .admin-section-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .admin-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .admin-filter input,
+        .admin-checkbox-row input {
+            accent-color: var(--primary);
+        }
+
+        .admin-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0 18px;
+        }
+
+        .admin-form-grid .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .admin-form-grid .form-group input,
+        .admin-form-grid .form-group select,
+        .admin-form-grid .form-group textarea {
+            width: 100%;
+            min-height: 45px;
+            padding: 11px 13px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text);
+            font: inherit;
+            font-size: 13px;
+        }
+
+        .admin-form-grid .form-group textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .admin-form-grid .form-group {
+            min-width: 0;
+        }
+
+        .admin-checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .admin-form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .admin-secondary-button,
+        .admin-danger-button,
+        .admin-small-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 36px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .admin-danger-button {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .admin-secondary-button:hover,
+        .admin-small-button:hover {
+            border-color: var(--primary);
+        }
+
+        .admin-danger-button:hover {
+            background: var(--danger);
+            color: #ffffff;
+        }
+
+        .admin-small-button:disabled,
+        .admin-secondary-button:disabled,
+        .admin-danger-button:disabled,
+        .button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .admin-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+            background: var(--surface);
+            font-size: 12px;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 13px 14px;
+            text-align: left;
+            vertical-align: top;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .admin-table th {
+            background: var(--surface-soft);
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        .admin-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .admin-table td {
+            overflow-wrap: anywhere;
+        }
+
+        .admin-table-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        .admin-status {
+            display: inline-block;
+            padding: 5px 8px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .admin-status.active {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .admin-status.inactive,
+        .admin-status.rejected {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .admin-status.pending {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .admin-empty {
+            padding: 22px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .admin-help-text {
+            margin: -8px 0 20px;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .admin-message {
+            margin-bottom: 18px;
+            padding: 13px 15px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text-muted);
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .admin-message.success {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .admin-message.error {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .admin-message.info {
+            border-color: var(--primary);
+            color: var(--text);
+        }
+
+        .admin-footer {
+            margin-top: 0;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        @media (max-width: 900px) {
+            .admin-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .admin-container {
+                width: calc(100% - 28px);
+                padding-top: 22px;
+            }
+
+            .admin-welcome {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .admin-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-form-grid .full-width {
+                grid-column: auto;
+            }
+
+            .admin-panel {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body class="admin-page">
+
+    <!-- =====================================
+         HEADER
+         ===================================== -->
+
+    <header class="site-header dashboard-header">
+        <nav class="navbar container" aria-label="Main navigation">
+
+            <a href="/" class="logo" aria-label="SkillBridge home">
+                <span class="logo-icon" aria-hidden="true">S</span>
+                <span>
+                    Skill<span class="logo-highlight">Bridge</span>
+                </span>
+            </a>
+
+            <div class="admin-header-actions">
+                <span id="adminHeaderName">Admin</span>
+
+                <a href="/dashboard" class="admin-secondary-button">
+                    User Dashboard
+                </a>
+
+                <button
+                    type="button"
+                    class="logout-button"
+                    id="adminLogoutButton"
+                >
+                    Log Out
+                </button>
+            </div>
+
+        </nav>
+    </header>
+
+
+    <main class="admin-container">
+
+        <!-- =====================================
+             WELCOME
+             ===================================== -->
+
+        <section class="admin-welcome">
+            <div>
+                <span class="eyebrow">SKILLBRIDGE MANAGEMENT</span>
+
+                <h1>Admin Dashboard</h1>
+
+                <p>
+                    Manage employers, companies, jobs, skills,
+                    courses, and administrator accounts.
+                </p>
+            </div>
+        </section>
+
+
+        <div
+            id="adminMessage"
+            class="admin-message"
+            role="status"
+            aria-live="polite"
+            hidden
+        ></div>
+
+
+        <!-- =====================================
+             SUMMARY CARDS
+             ===================================== -->
+
+        <section
+            class="admin-summary-grid"
+            aria-label="Administration statistics"
+        >
+
+            <article class="admin-summary-card">
+                <p>Pending Employers</p>
+                <h2 id="pendingEmployerCount">—</h2>
+            </article>
+
+            <article class="admin-summary-card">
+                <p>Active Companies</p>
+                <h2 id="activeCompanyCount">—</h2>
+            </article>
+
+            <article class="admin-summary-card">
+                <p>Active Jobs</p>
+                <h2 id="activeJobCount">—</h2>
+            </article>
+
+            <article class="admin-summary-card">
+                <p>Active Skills</p>
+                <h2 id="activeSkillCount">—</h2>
+            </article>
+
+            <article class="admin-summary-card">
+                <p>Active Courses</p>
+                <h2 id="activeCourseCount">—</h2>
+            </article>
+
+            <article class="admin-summary-card">
+                <p>Admin Accounts</p>
+                <h2 id="adminAccountCount">—</h2>
+            </article>
+
+        </section>
+
+
+        <!-- =====================================
+             SECTION NAVIGATION
+             ===================================== -->
+
+        <nav class="admin-nav" aria-label="Admin sections">
+            <a href="#pendingEmployers">Employers</a>
+            <a href="#companyManagement">Companies</a>
+            <a href="#jobManagement">Jobs</a>
+            <a href="#skillsManagement">Skills</a>
+            <a href="#coursesManagement">Courses</a>
+            <a href="#adminsManagement">Admin Accounts</a>
+        </nav>
+
+
+        <!-- =====================================
+             PENDING EMPLOYERS
+             ===================================== -->
+
+        <section
+            class="dashboard-panel admin-panel"
+            id="pendingEmployers"
+            aria-labelledby="pendingEmployersHeading"
+        >
+
+            <div class="panel-heading">
+                <div>
+                    <span class="eyebrow">ACCOUNT REVIEW</span>
+
+                    <h2 id="pendingEmployersHeading">
+                        Pending Employers
+                    </h2>
+
+                    <p>
+                        Review and approve employer registrations.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="admin-secondary-button"
+                    id="refreshEmployersButton"
+                >
+                    Refresh
+                </button>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="pendingEmployersTableBody">
+                        <tr>
+                            <td colspan="5" class="admin-empty">
+                                Loading employers...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             COMPANY MANAGEMENT
+             ===================================== -->
+
+        <section
+            class="dashboard-panel admin-panel"
+            id="companyManagement"
+            aria-labelledby="companyManagementHeading"
+        >
+
+            <div class="panel-heading">
+                <div>
+                    <span class="eyebrow">COMPANY DIRECTORY</span>
+
+                    <h2 id="companyManagementHeading">
+                        Manage Companies
+                    </h2>
+
+                    <p>
+                        Create and maintain companies associated
+                        with job vacancies.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="admin-secondary-button"
+                    id="refreshCompaniesButton"
+                >
+                    Refresh
+                </button>
+            </div>
+
+
+            <form id="companyForm">
+                <input type="hidden" id="companyId">
+
+                <div class="admin-form-grid">
+
+                    <div class="form-group">
+                        <label for="companyName">Company Name *</label>
+
+                        <input
+                            type="text"
+                            id="companyName"
+                            maxlength="255"
+                            minlength="2"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="companyIndustry">Industry</label>
+
+                        <input
+                            type="text"
+                            id="companyIndustry"
+                            maxlength="150"
+                            placeholder="e.g. Software Development"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="companyLocation">Location</label>
+
+                        <input
+                            type="text"
+                            id="companyLocation"
+                            maxlength="255"
+                            placeholder="e.g. Dhaka, Bangladesh"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="companyWebsite">Website</label>
+
+                        <input
+                            type="url"
+                            id="companyWebsite"
+                            maxlength="500"
+                            placeholder="https://example.com"
+                        >
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="companyDescription">
+                            Description
+                        </label>
+
+                        <textarea
+                            id="companyDescription"
+                            rows="3"
+                            placeholder="Describe the company."
+                        ></textarea>
+                    </div>
+
+                </div>
+
+                <div class="admin-form-actions">
+
+                    <button
+                        type="submit"
+                        class="button"
+                        id="saveCompanyButton"
+                    >
+                        Add Company
+                    </button>
+
+                    <button
+                        type="button"
+                        class="admin-secondary-button"
+                        id="cancelCompanyEditButton"
+                        hidden
+                    >
+                        Cancel Edit
+                    </button>
+
+                </div>
+            </form>
+
+
+            <hr style="border:0;border-top:1px solid var(--border);margin:24px 0;">
+
+
+            <div class="admin-section-actions">
+
+                <label class="admin-filter">
+                    <input
+                        type="checkbox"
+                        id="includeInactiveCompanies"
+                    >
+                    Show inactive companies
+                </label>
+
+            </div>
+
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Company</th>
+                            <th>Industry</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="companiesTableBody">
+                        <tr>
+                            <td colspan="6" class="admin-empty">
+                                Companies will appear here.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             JOB MANAGEMENT
+             ===================================== -->
+
+        <section
+            class="dashboard-panel admin-panel"
+            id="jobManagement"
+            aria-labelledby="jobManagementHeading"
+        >
+
+            <div class="panel-heading">
+                <div>
+                    <span class="eyebrow">CAREER OPPORTUNITIES</span>
+
+                    <h2 id="jobManagementHeading">
+                        Manage Jobs
+                    </h2>
+
+                    <p>
+                        Create vacancies and link required skills
+                        for resume matching.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="admin-secondary-button"
+                    id="refreshJobsButton"
+                >
+                    Refresh
+                </button>
+            </div>
+
+
+            <p class="admin-help-text">
+                Select at least one active required skill for every job.
+                These skills are used to calculate match percentages
+                and identify missing skills.
+            </p>
+
+
+            <form id="jobForm">
+                <input type="hidden" id="jobId">
+
+                <div class="admin-form-grid">
+
+                    <div class="form-group full-width">
+                        <label for="jobTitle">Job Title *</label>
+
+                        <input
+                            type="text"
+                            id="jobTitle"
+                            minlength="2"
+                            maxlength="255"
+                            required
+                            placeholder="e.g. Junior Python Developer"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobCompanyId">Company *</label>
+
+                        <select id="jobCompanyId" required>
+                            <option value="">
+                                Select an active company
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobLocation">Location</label>
+
+                        <input
+                            type="text"
+                            id="jobLocation"
+                            maxlength="255"
+                            placeholder="e.g. Dhaka, Bangladesh"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobEmploymentType">
+                            Employment Type
+                        </label>
+
+                        <select id="jobEmploymentType">
+                            <option value="">
+                                Select employment type
+                            </option>
+                            <option value="Full-time">Full-time</option>
+                            <option value="Part-time">Part-time</option>
+                            <option value="Internship">Internship</option>
+                            <option value="Contract">Contract</option>
+                            <option value="Remote">Remote</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobCurrency">Salary Currency</label>
+
+                        <select id="jobCurrency">
+                            <option value="BDT">BDT (৳)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobSalaryMin">Minimum Salary</label>
+
+                        <input
+                            type="number"
+                            id="jobSalaryMin"
+                            min="0"
+                            step="0.01"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobSalaryMax">Maximum Salary</label>
+
+                        <input
+                            type="number"
+                            id="jobSalaryMax"
+                            min="0"
+                            step="0.01"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobExperienceRequired">
+                            Experience Required
+                        </label>
+
+                        <input
+                            type="text"
+                            id="jobExperienceRequired"
+                            maxlength="100"
+                            placeholder="e.g. 0–1 years"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobEducationRequired">
+                            Education Required
+                        </label>
+
+                        <input
+                            type="text"
+                            id="jobEducationRequired"
+                            maxlength="255"
+                            placeholder="e.g. CSE or related degree"
+                        >
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="jobApplicationUrl">
+                            Application URL
+                        </label>
+
+                        <input
+                            type="url"
+                            id="jobApplicationUrl"
+                            maxlength="500"
+                            placeholder="https://example.com/careers"
+                        >
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Required Skills *</label>
+
+                        <div
+                            id="jobRequiredSkills"
+                            class="admin-form-grid"
+                        ></div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="jobDescription">
+                            Job Description
+                        </label>
+
+                        <textarea
+                            id="jobDescription"
+                            rows="5"
+                            placeholder="Describe the role and responsibilities."
+                        ></textarea>
+                    </div>
+
+                </div>
+
+
+                <div class="admin-form-actions">
+
+                    <button
+                        type="submit"
+                        class="button"
+                        id="saveJobButton"
+                    >
+                        Add Job
+                    </button>
+
+                    <button
+                        type="button"
+                        class="admin-secondary-button"
+                        id="cancelJobEditButton"
+                        hidden
+                    >
+                        Cancel Edit
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <hr style="border:0;border-top:1px solid var(--border);margin:24px 0;">
+
+
+            <div class="admin-section-actions">
+
+                <label class="admin-filter">
+                    <input
+                        type="checkbox"
+                        id="includeInactiveJobs"
+                    >
+                    Show inactive jobs
+                </label>
+
+            </div>
+
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Job Title</th>
+                            <th>Company</th>
+                            <th>Location</th>
+                            <th>Required Skills</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="jobsTableBody">
+                        <tr>
+                            <td colspan="7" class="admin-empty">
+                                Jobs will appear here.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             SKILL MANAGEMENT
+             ===================================== -->
+
+        <section
+            class="dashboard-panel admin-panel"
+            id="skillsManagement"
+            aria-labelledby="skillsHeading"
+        >
+
+            <div class="panel-heading">
+                <div>
+                    <span class="eyebrow">SKILL CATALOG</span>
+
+                    <h2 id="skillsHeading">Manage Skills</h2>
+
+                    <p>
+                        Add, edit, activate, or deactivate skills.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="admin-secondary-button"
+                    id="refreshSkillsButton"
+                >
+                    Refresh
+                </button>
+            </div>
+
+
+            <form id="skillForm">
+                <input type="hidden" id="skillId">
+
+                <div class="admin-form-grid">
+
+                    <div class="form-group">
+                        <label for="skillName">Skill Name *</label>
+
+                        <input
+                            type="text"
+                            id="skillName"
+                            maxlength="100"
+                            placeholder="e.g. FastAPI"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="skillCategory">Category</label>
+
+                        <input
+                            type="text"
+                            id="skillCategory"
+                            maxlength="100"
+                            placeholder="e.g. Backend Development"
+                        >
+                    </div>
+
+                </div>
+
+                <div class="admin-form-actions">
+
+                    <button
+                        type="submit"
+                        class="button"
+                        id="saveSkillButton"
+                    >
+                        Add Skill
+                    </button>
+
+                    <button
+                        type="button"
+                        class="admin-secondary-button"
+                        id="cancelSkillEditButton"
+                        hidden
+                    >
+                        Cancel Edit
+                    </button>
+
+                </div>
+            </form>
+
+
+            <hr style="border:0;border-top:1px solid var(--border);margin:24px 0;">
+
+
+            <div class="admin-section-actions">
+
+                <label class="admin-filter">
+                    <input
+                        type="checkbox"
+                        id="includeInactiveSkills"
+                    >
+                    Show inactive skills
+                </label>
+
+            </div>
+
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Skill</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="skillsTableBody">
+                        <tr>
+                            <td colspan="5" class="admin-empty">
+                                Loading skills...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             COURSE MANAGEMENT
+             ===================================== -->
+
+        <section
+            class="dashboard-panel admin-panel"
+            id="coursesManagement"
+            aria-labelledby="coursesHeading"
+        >
+
+            <div class="panel-heading">
+                <div>
+                    <span class="eyebrow">LEARNING CATALOG</span>
+
+                    <h2 id="coursesHeading">Manage Courses</h2>
+
+                    <p>
+                        Link learning resources to skills to help
+                        job seekers improve their skill gaps.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="admin-secondary-button"
+                    id="refreshCoursesButton"
+                >
+                    Refresh
+                </button>
+            </div>
+
+
+            <form id="courseForm">
+                <input type="hidden" id="courseId">
+
+                <div class="admin-form-grid">
+
+                    <div class="form-group">
+                        <label for="courseTitle">Course Title *</label>
+
+                        <input
+                            type="text"
+                            id="courseTitle"
+                            maxlength="255"
+                            placeholder="e.g. FastAPI Official Tutorial"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="courseProvider">Provider *</label>
+
+                        <input
+                            type="text"
+                            id="courseProvider"
+                            maxlength="100"
+                            placeholder="e.g. FastAPI, Coursera, Udemy"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="courseSkillId">Related Skill *</label>
+
+                        <select id="courseSkillId" required>
+                            <option value="">
+                                Select an active skill
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="courseLevel">Level</label>
+
+                        <input
+                            type="text"
+                            id="courseLevel"
+                            maxlength="50"
+                            placeholder="e.g. Beginner"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="courseDuration">Duration</label>
+
+                        <input
+                            type="text"
+                            id="courseDuration"
+                            maxlength="100"
+                            placeholder="e.g. 2 hours"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="courseUrl">Course URL *</label>
+
+                        <input
+                            type="url"
+                            id="courseUrl"
+                            maxlength="500"
+                            placeholder="https://example.com/course"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="courseDescription">
+                            Description
+                        </label>
+
+                        <textarea
+                            id="courseDescription"
+                            rows="3"
+                            placeholder="Briefly describe what the course teaches."
+                        ></textarea>
+                    </div>
+
+                </div>
+
+
+                <label class="admin-checkbox-row">
+                    <input type="checkbox" id="courseIsFree">
+                    This course is free
+                </label>
+
+
+                <div class="admin-form-actions">
+
+                    <button
+                        type="submit"
+                        class="button"
+                        id="saveCourseButton"
+                    >
+                        Add Course
+                    </button>
+
+                    <button
+                        type="button"
+                        class="admin-secondary-button"
+                        id="cancelCourseEditButton"
+                        hidden
+                    >
+                        Cancel Edit
+                    </button>
+
+                </div>
+            </form>
+
+
+            <hr style="border:0;border-top:1px solid var(--border);margin:24px 0;">
+
+
+            <div class="admin-section-actions">
+
+                <label class="admin-filter">
+                    <input
+                        type="checkbox"
+                        id="includeInactiveCourses"
+                    >
+                    Show inactive courses
+                </label>
+
+            </div>
+
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Course</th>
+                            <th>Provider</th>
+                            <th>Skill</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="coursesTableBody">
+                        <tr>
+                            <td colspan="7" class="admin-empty">
+                                Loading courses...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+
+        <!-- =====================================
+             ADMIN ACCOUNT MANAGEMENT
+             ===================================== -->
+
+        <section
+            class="dashboard-panel admin-panel"
+            id="adminsManagement"
+            aria-labelledby="adminsHeading"
+        >
+
+            <div class="panel-heading">
+                <div>
+                    <span class="eyebrow">ACCESS CONTROL</span>
+
+                    <h2 id="adminsHeading">Admin Accounts</h2>
+
+                    <p>
+                        Create administrator accounts and manage
+                        their active status.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="admin-secondary-button"
+                    id="refreshAdminsButton"
+                >
+                    Refresh
+                </button>
+            </div>
+
+
+            <form id="adminCreateForm">
+
+                <div class="admin-form-grid">
+
+                    <div class="form-group">
+                        <label for="newAdminName">Full Name *</label>
+
+                        <input
+                            type="text"
+                            id="newAdminName"
+                            minlength="2"
+                            maxlength="100"
+                            autocomplete="name"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="newAdminEmail">Email *</label>
+
+                        <input
+                            type="email"
+                            id="newAdminEmail"
+                            maxlength="255"
+                            autocomplete="email"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="newAdminPassword">Password *</label>
+
+                        <input
+                            type="password"
+                            id="newAdminPassword"
+                            minlength="8"
+                            maxlength="128"
+                            autocomplete="new-password"
+                            required
+                        >
+                    </div>
+
+                </div>
+
+
+                <div class="admin-form-actions">
+                    <button
+                        type="submit"
+                        class="button"
+                        id="createAdminButton"
+                    >
+                        Create Admin
+                    </button>
+                </div>
+
+            </form>
+
+
+            <hr style="border:0;border-top:1px solid var(--border);margin:24px 0;">
+
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="adminsTableBody">
+                        <tr>
+                            <td colspan="5" class="admin-empty">
+                                Loading administrators...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================
+         FOOTER
+         ===================================== -->
+
+    <footer class="site-footer admin-footer">
+        <div class="container footer-content">
+
+            <a href="/" class="logo" aria-label="SkillBridge home">
+                <span class="logo-icon" aria-hidden="true">S</span>
+
+                <span>
+                    Skill<span class="logo-highlight">Bridge</span>
+                </span>
+            </a>
+
+            <p>
+                © <span id="currentYear"></span> SkillBridge Admin
+            </p>
+
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -44,8 +44,9 @@ router = APIRouter(
 
 
 # =========================================================
-# HELPER: GET THE CURRENT EMPLOYER'S COMPANY
+# HELPER FUNCTIONS
 # =========================================================
+
 
 def get_employer_company(
     db: Session,
@@ -69,10 +70,6 @@ def get_employer_company(
 
     return company
 
-
-# =========================================================
-# HELPER: GET A JOB OWNED BY THE EMPLOYER
-# =========================================================
 
 def get_employer_job(
     db: Session,
@@ -104,32 +101,38 @@ def get_employer_job(
     return job
 
 
-# =========================================================
-# HELPER: UPDATE AUDIT FIELD WHEN AVAILABLE
-# =========================================================
+def set_created_by(
+    obj,
+    user_id: int,
+) -> None:
+    """
+    Populate created_by_id when the model supports it.
+    """
+
+    if hasattr(obj, "created_by_id"):
+        obj.created_by_id = user_id
+
 
 def set_updated_by(
     obj,
     user_id: int,
 ) -> None:
     """
-    Set updated_by_id if the model has that field.
+    Populate updated_by_id when the model supports it.
     """
 
     if hasattr(obj, "updated_by_id"):
         obj.updated_by_id = user_id
 
 
-# =========================================================
-# HELPER: COMMIT DATABASE CHANGES SAFELY
-# =========================================================
-
 def commit_changes(
     db: Session,
     error_message: str,
 ) -> None:
     """
-    Commit changes and handle database integrity errors.
+    Commit database changes safely.
+
+    Roll back the transaction if an integrity error occurs.
     """
 
     try:
@@ -141,6 +144,25 @@ def commit_changes(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=error_message,
+        )
+
+
+def validate_salary_range(
+    salary_min,
+    salary_max,
+) -> None:
+    """
+    Validate the minimum and maximum salary.
+    """
+
+    if (
+        salary_min is not None
+        and salary_max is not None
+        and salary_min > salary_max
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Minimum salary cannot exceed maximum salary.",
         )
 
 
@@ -165,7 +187,11 @@ def create_company(
 ):
     """
     Create a company for the logged-in employer.
+
+    Each employer can have only one company.
     """
+
+    # Check whether the employer already owns a company.
 
     existing_company = db.scalar(
         select(Company).where(
@@ -179,9 +205,21 @@ def create_company(
             detail="You already have a company.",
         )
 
+    # Validate company name.
+
+    company_name = company_data.name.strip()
+
+    if len(company_name) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Company name must contain at least two characters.",
+        )
+
+    # Check duplicate company names without case sensitivity.
+
     existing_name = db.scalar(
         select(Company).where(
-            Company.name == company_data.name
+            func.lower(Company.name) == company_name.lower()
         )
     )
 
@@ -191,21 +229,27 @@ def create_company(
             detail="A company with this name already exists.",
         )
 
+    # Create company.
+
     company = Company(
         employer_id=current_employer.id,
-        name=company_data.name,
+        name=company_name,
         industry=company_data.industry,
         location=company_data.location,
         website=company_data.website,
         description=company_data.description,
+        status="ACTIVE",
     )
 
-    # Populate audit fields if available.
-    if hasattr(company, "created_by_id"):
-        company.created_by_id = current_employer.id
+    set_created_by(
+        company,
+        current_employer.id,
+    )
 
-    if hasattr(company, "updated_by_id"):
-        company.updated_by_id = current_employer.id
+    set_updated_by(
+        company,
+        current_employer.id,
+    )
 
     db.add(company)
 
@@ -267,32 +311,60 @@ def update_my_company(
         exclude_unset=True
     )
 
-    # Prevent blank company names.
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide at least one field to update.",
+        )
+
+    # Validate company name if supplied.
+
     if "name" in update_data:
-        if not update_data["name"] or not update_data["name"].strip():
+
+        new_name = update_data["name"]
+
+        if new_name is None or not new_name.strip():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Company name cannot be empty.",
             )
 
-        update_data["name"] = update_data["name"].strip()
+        new_name = new_name.strip()
 
-        existing_name = db.scalar(
+        if len(new_name) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Company name must contain at least two characters.",
+            )
+
+        duplicate = db.scalar(
             select(Company).where(
-                Company.name == update_data["name"],
+                func.lower(Company.name) == new_name.lower(),
                 Company.id != company.id,
             )
         )
 
-        if existing_name:
+        if duplicate:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A company with this name already exists.",
             )
 
-    # Apply only fields provided by the client.
+        update_data["name"] = new_name
+
+    # Update only fields supported by CompanyUpdate.
+
+    allowed_fields = {
+        "name",
+        "industry",
+        "location",
+        "website",
+        "description",
+    }
+
     for field, value in update_data.items():
-        if hasattr(company, field):
+
+        if field in allowed_fields:
             setattr(company, field, value)
 
     set_updated_by(
@@ -339,44 +411,60 @@ def create_job(
     )
 
     # Validate salary range.
-    if (
-        job_data.salary_min is not None
-        and job_data.salary_max is not None
-        and job_data.salary_min > job_data.salary_max
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Minimum salary cannot exceed maximum salary.",
-        )
+
+    validate_salary_range(
+        job_data.salary_min,
+        job_data.salary_max,
+    )
 
     # Validate job title.
-    if not job_data.title or not job_data.title.strip():
+
+    title = job_data.title.strip()
+
+    if not title:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Job title cannot be empty.",
         )
 
+    # Validate currency.
+
+    currency = job_data.currency.strip().upper()
+
+    if not currency:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Currency cannot be empty.",
+        )
+
+    # Create job.
+
     job = Job(
         company_id=company.id,
-        title=job_data.title.strip(),
+        title=title,
         location=job_data.location,
         employment_type=job_data.employment_type,
         salary_min=job_data.salary_min,
         salary_max=job_data.salary_max,
-        currency=job_data.currency,
+        currency=currency,
         experience_required=job_data.experience_required,
         education_required=job_data.education_required,
         description=job_data.description,
         application_url=job_data.application_url,
         posted_at=job_data.posted_at or datetime.now(timezone.utc),
         deadline=job_data.deadline,
+        status="ACTIVE",
     )
 
-    if hasattr(job, "created_by_id"):
-        job.created_by_id = current_employer.id
+    set_created_by(
+        job,
+        current_employer.id,
+    )
 
-    if hasattr(job, "updated_by_id"):
-        job.updated_by_id = current_employer.id
+    set_updated_by(
+        job,
+        current_employer.id,
+    )
 
     db.add(job)
 
@@ -413,7 +501,9 @@ def get_my_jobs(
 
     jobs = db.scalars(
         select(Job)
-        .where(Job.company_id == company.id)
+        .where(
+            Job.company_id == company.id
+        )
         .order_by(Job.id.desc())
     ).all()
 
@@ -472,7 +562,14 @@ def update_job(
         exclude_unset=True
     )
 
-    # Validate salary range using the final values.
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide at least one field to update.",
+        )
+
+    # Validate the final salary range.
+
     new_salary_min = update_data.get(
         "salary_min",
         job.salary_min,
@@ -483,21 +580,18 @@ def update_job(
         job.salary_max,
     )
 
-    if (
-        new_salary_min is not None
-        and new_salary_max is not None
-        and new_salary_min > new_salary_max
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Minimum salary cannot exceed maximum salary.",
-        )
+    validate_salary_range(
+        new_salary_min,
+        new_salary_max,
+    )
 
-    # Validate title if supplied.
+    # Validate job title.
+
     if "title" in update_data:
+
         title = update_data["title"]
 
-        if not title or not title.strip():
+        if title is None or not title.strip():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Job title cannot be empty.",
@@ -505,9 +599,40 @@ def update_job(
 
         update_data["title"] = title.strip()
 
-    # Apply the changes.
+    # Validate currency.
+
+    if "currency" in update_data:
+
+        currency = update_data["currency"]
+
+        if currency is None or not currency.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Currency cannot be empty.",
+            )
+
+        update_data["currency"] = currency.strip().upper()
+
+    allowed_fields = {
+        "title",
+        "location",
+        "employment_type",
+        "salary_min",
+        "salary_max",
+        "currency",
+        "experience_required",
+        "education_required",
+        "description",
+        "application_url",
+        "posted_at",
+        "deadline",
+    }
+
+    # Apply the updates.
+
     for field, value in update_data.items():
-        if hasattr(job, field):
+
+        if field in allowed_fields:
             setattr(job, field, value)
 
     set_updated_by(
@@ -541,7 +666,8 @@ def delete_job(
     """
     Permanently delete a job belonging to the employer.
 
-    Note: This is a hard delete, not a soft delete.
+    JobSkill records are removed through the SQLAlchemy
+    relationship cascade configured in the Job model.
     """
 
     job = get_employer_job(
@@ -561,7 +687,7 @@ def delete_job(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
                 "This job cannot be deleted because related records "
-                "still reference it. Remove those records first."
+                "still reference it."
             ),
         )
 
@@ -588,6 +714,9 @@ def add_skill_to_job(
 ):
     """
     Add a required or optional skill to an employer-owned job.
+
+    If a previously deactivated skill link exists,
+    reactivate that record instead of creating a duplicate.
     """
 
     job = get_employer_job(
@@ -595,6 +724,8 @@ def add_skill_to_job(
         employer=current_employer,
         job_id=job_id,
     )
+
+    # Check whether the skill exists.
 
     skill = db.get(
         Skill,
@@ -607,17 +738,13 @@ def add_skill_to_job(
             detail="Skill not found.",
         )
 
-    # Do not assign inactive skills when the model has status.
-    skill_status = getattr(skill, "status", None)
-
-    if (
-        skill_status is not None
-        and str(skill_status).upper() != "ACTIVE"
-    ):
+    if skill.status != "ACTIVE":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This skill is not active and cannot be assigned.",
+            detail="This skill is inactive and cannot be assigned.",
         )
+
+    # Check whether the skill is already assigned.
 
     existing_link = db.scalar(
         select(JobSkill).where(
@@ -627,22 +754,50 @@ def add_skill_to_job(
     )
 
     if existing_link:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This skill is already assigned to the job.",
+
+        if existing_link.status == "ACTIVE":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This skill is already assigned to the job.",
+            )
+
+        # Reactivate the old record.
+
+        existing_link.status = "ACTIVE"
+        existing_link.is_required = skill_data.is_required
+
+        set_updated_by(
+            existing_link,
+            current_employer.id,
         )
+
+        commit_changes(
+            db,
+            "Unable to reactivate this job skill.",
+        )
+
+        db.refresh(existing_link)
+
+        return existing_link
+
+    # Create a new job-skill relationship.
 
     job_skill = JobSkill(
         job_id=job.id,
         skill_id=skill.id,
         is_required=skill_data.is_required,
+        status="ACTIVE",
     )
 
-    if hasattr(job_skill, "created_by_id"):
-        job_skill.created_by_id = current_employer.id
+    set_created_by(
+        job_skill,
+        current_employer.id,
+    )
 
-    if hasattr(job_skill, "updated_by_id"):
-        job_skill.updated_by_id = current_employer.id
+    set_updated_by(
+        job_skill,
+        current_employer.id,
+    )
 
     db.add(job_skill)
 
@@ -670,7 +825,7 @@ def get_job_skills(
     current_employer: User = Depends(require_employer),
 ):
     """
-    List skills assigned to an employer-owned job.
+    List active skills assigned to an employer-owned job.
     """
 
     job = get_employer_job(
@@ -681,7 +836,10 @@ def get_job_skills(
 
     job_skills = db.scalars(
         select(JobSkill)
-        .where(JobSkill.job_id == job.id)
+        .where(
+            JobSkill.job_id == job.id,
+            JobSkill.status == "ACTIVE",
+        )
         .order_by(JobSkill.id)
     ).all()
 
@@ -717,13 +875,14 @@ def update_job_skill(
         select(JobSkill).where(
             JobSkill.job_id == job.id,
             JobSkill.skill_id == skill_id,
+            JobSkill.status == "ACTIVE",
         )
     )
 
     if job_skill is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="This skill is not assigned to the job.",
+            detail="This active skill is not assigned to the job.",
         )
 
     job_skill.is_required = skill_data.is_required
@@ -758,7 +917,9 @@ def delete_job_skill(
     current_employer: User = Depends(require_employer),
 ):
     """
-    Remove a skill from an employer-owned job.
+    Deactivate a skill assigned to an employer-owned job.
+
+    This preserves the JobSkill database record and audit history.
     """
 
     job = get_employer_job(
@@ -771,17 +932,32 @@ def delete_job_skill(
         select(JobSkill).where(
             JobSkill.job_id == job.id,
             JobSkill.skill_id == skill_id,
+            JobSkill.status == "ACTIVE",
         )
     )
 
     if job_skill is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="This skill is not assigned to the job.",
+            detail="This active skill is not assigned to the job.",
         )
 
+    job_skill.status = "INACTIVE"
+
+    set_updated_by(
+        job_skill,
+        current_employer.id,
+    )
+
     try:
-        db.delete(job_skill)
         db.commit()
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Unable to remove this skill.",
+        )
 
     return None
